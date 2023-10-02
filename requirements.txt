@@ -1,2 +1,4 @@
 langchain
 google-cloud-aiplatform
+pydantic
+asyncio

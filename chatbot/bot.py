@@ -1,5 +1,6 @@
 from common.config import Config, BaseSingleton
 from chatbot.chain import ChainManager
+from chatbot.prompt  import PERSONALITY_PROMPT
 
 
 class Bot(BaseSingleton):
@@ -13,9 +14,10 @@ class Bot(BaseSingleton):
 
     def set_personality(
             self,
-            gender: str = "auto",
+            **kwargs
     ):
-        pass
+        personality_prompt = PERSONALITY_PROMPT.format(**kwargs)
+        self.chain.reset_prompt(personality_prompt=personality_prompt)
 
     def process_message(self):
         pass
