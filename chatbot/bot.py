@@ -43,8 +43,10 @@ class Bot(BaseSingleton):
 
     def task(self):
         while True:
-            sentence = input("MESSAGE:")
-            self.chain.input_queue.put(BaseMessage(message=sentence))
+            sentence = input("User:")
+            if sentence:
+                self.chain.input_queue.put(BaseMessage(message=sentence))
+                continue
 
     def message(self):
         while True:
@@ -52,7 +54,7 @@ class Bot(BaseSingleton):
                 time.sleep(0.5)
                 continue
             message = self.chain.output_queue.get_nowait()
-            print(message.message)
+            print("Bot:",message.message)
 
 
 if __name__ == "__main__":

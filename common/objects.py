@@ -8,11 +8,7 @@ class Role:
     System = "SYSTEM"
 
 class BaseMessage(BaseModel):
-    message: str = Field(default="User message")
-    role: str = Field(default="Message role in conversation")
-    
-    @field_validator("role")
-    def validate_role(cls, value):
-        if value not in Role.__dict__.keys():
-            raise ValueError()
+    message: str = Field(description="User message")
+    role: str = Field(description="Message role in conversation", default="User")
+    id: str = Field(description="User id to distinguish from others", default="0123")
     
