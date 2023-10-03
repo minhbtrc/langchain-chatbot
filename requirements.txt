@@ -2,3 +2,5 @@ langchain
 google-cloud-aiplatform
 pydantic
 asyncio
+fastapi
+uvicorn

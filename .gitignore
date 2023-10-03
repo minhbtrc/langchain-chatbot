@@ -1,3 +1,4 @@
 .env
 secure/*
 .idea/
+*/__pycache__/
