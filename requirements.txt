@@ -4,3 +4,4 @@ pydantic
 asyncio
 fastapi
 uvicorn
+pymongo
