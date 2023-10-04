@@ -1,9 +1,10 @@
 from langchain.memory import MongoDBChatMessageHistory, ConversationBufferMemory
 
-from chatbot.common.config import BaseSingleton, Config
+from chatbot.common.config import Config
+from chatbot.memory.base_memory import BaseChatbotMemory
 
 
-class ChatbotMemory(BaseSingleton):
+class MongoChatbotMemory(BaseChatbotMemory):
     @classmethod
     def create(cls, config: Config = None):
         config = config if config is not None else Config()
@@ -14,5 +15,5 @@ class ChatbotMemory(BaseSingleton):
             collection_name=config.memory_collection_name
         )
         return ConversationBufferMemory(
-            chat_memory=_mem
+            **cls.parse_params(config, chat_memory=_mem)
         )

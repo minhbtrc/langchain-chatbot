@@ -48,8 +48,10 @@ class Config(BaseSingleton):
 
         self.mongo_username = mongo_username if mongo_username is not None else os.getenv(MONGO_USERNAME)
         self.mongo_password = mongo_password if mongo_password is not None else os.getenv(MONGO_PASSWORD)
-        self.mongo_password = urllib.parse.quote_plus(self.mongo_password)
-        self.mongo_username = urllib.parse.quote_plus(self.mongo_username)
+        if mongo_password:
+            self.mongo_password = urllib.parse.quote_plus(self.mongo_password)
+        if mongo_username:
+            self.mongo_username = urllib.parse.quote_plus(self.mongo_username)
         self.mongo_cluster = mongo_cluster if mongo_cluster is not None else os.getenv(MONGO_CLUSTER)
         self.memory_database_name = memory_database_name if memory_database_name is not None \
             else os.getenv(MONGO_DATABASE, "langchain_bot")
@@ -59,6 +61,9 @@ class Config(BaseSingleton):
             else os.getenv(MONGO_CONNECTION_STRING,
                            f"mongodb+srv://{self.mongo_username}:{self.mongo_password}@{self.mongo_cluster}.xnkswcg.mongodb.net")
         self.session_id = session_id if session_id is not None else "chatbot"
+        self.ai_prefix = os.getenv(AI_PREFIX, "AI")
+        self.human_prefix = os.getenv(HUMAN_PREFIX, "Human")
+        self.memory_key = os.getenv(MEMORY_KEY, "history")
 
     def init_env(self):
         credential_data = json.load(open(self.credentials, "r"))

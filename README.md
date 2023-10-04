@@ -4,9 +4,11 @@
 - This is a chatbot implementation with Langchain framework.
   - Base LLM: Vertex AI
   - Memory: MongoDB
+  - UI: Gradio
   - Cache: PENDING
 - User can custom bot's personality by setting bot information like gender, age, ...
-- UI: UPDATING ...
+- Demo UI:
+![Demo UI](/assets/demo_ui.png)
 
 ## How to use
 - You need Google Cloud credentials to call Vertex API
@@ -18,3 +20,7 @@
 3. Install required packages: `pip install -r requirements.txt`
 4. Create MongoDB database and config environment variables to connect Mongo.
 5. Run: `python chatbot/bot.py`
+
+
+### Demo
+To run UI demo: `python ./chat_ui/base_ui.py`
