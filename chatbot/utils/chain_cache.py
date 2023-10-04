@@ -7,6 +7,8 @@ CACHE_TYPE = {
     "in_memory": InMemoryCache,
     "redis": RedisCache
 }
+
+
 class ChatbotCache(BaseSingleton):
     @classmethod
     def create(cls, config: Config = None):

@@ -5,3 +5,4 @@ asyncio
 fastapi
 uvicorn
 pymongo
+gradio
