@@ -20,57 +20,41 @@ class ChainManager(BaseSingleton):
     def __init__(
             self,
             config: Config = None,
+            llm=None,
             parameters: dict = None,
-            memory_class: BaseChatbotMemory = None
+            memory_class: BaseChatbotMemory = None,
+            prompt_template: PromptTemplate = None
     ):
         super().__init__()
         self.config = config if config is not None else Config()
-        self.chain = None
-        self._base_model = None
-        self.input_queue = None
-        self.output_queue = None
-        self.input_worker = None
         self._parameters = parameters if parameters is not None else {
             "max_output_tokens": 512,
             "temperature": 0.2,
             "top_p": 0.8,
             "top_k": 40
         }
-        self._memory = None
-        self._cache = None
         self._predict_executor = ThreadPoolExecutor(max_workers=1)
         memory_class = memory_class if memory_class is not None else BaseChatbotMemory
         self._memory = memory_class(config=self.config)
-
-    def init(self):
-        self._memory.init()
+        self._base_model = llm if llm else self.create_default_model()
+        if prompt_template:
+            self._prompt = prompt_template
+        else:
+            partial_variables = {"personality": PERSONALITY_PROMPT}
+            self._prompt = PromptTemplate(
+                template=CHATBOT_PROMPT,
+                input_variables=["input", "history"],
+                partial_variables=partial_variables
+            )
+        self._cache = ChatbotCache.create(config=self.config)
         self._init_chain()
 
     @property
     def memory(self):
         return self._memory.memory
 
-    def create_model(self):
+    def create_default_model(self):
         return ChatVertexAI(model_name=self.config.base_model_name, **self.parameters)
-
-    def _init_chain(self, partial_variables: dict = None, promt_template: str = CHATBOT_PROMPT):
-        if partial_variables is None:
-            partial_variables = {"personality": PERSONALITY_PROMPT}
-
-        _prompt = PromptTemplate(
-            template=promt_template,
-            input_variables=["input", "history"],
-            partial_variables=partial_variables
-        )
-        self._cache = ChatbotCache.create(config=self.config)
-        self._base_model = self.create_model()
-
-        self.chain = ConversationChain(
-            llm=self._base_model,
-            prompt=_prompt,
-            verbose=True,
-            memory=self._memory.memory
-        )
 
     @property
     def parameters(self):
@@ -79,13 +63,29 @@ class ChainManager(BaseSingleton):
     @parameters.setter
     def parameters(self, _params: dict):
         self._parameters = _params
-        self._init_chain()
 
     def reset_history(self):
         self._memory.clear()
 
-    def set_prompt(self, personality_prompt: str):
-        self._init_chain(partial_variables={"personality": personality_prompt})
+    def _init_chain(self):
+        self.chain = ConversationChain(
+            llm=self._base_model,
+            prompt=self._prompt,
+            verbose=True,
+            memory=self.memory
+        )
+
+    def _init_prompt_template(self, partial_variables = None):
+        self._prompt = PromptTemplate(
+            template=CHATBOT_PROMPT,
+            input_variables=["input", "history"],
+            partial_variables=partial_variables
+        )
+
+    def set_personality_prompt(self, personality_prompt: str):
+        partial_variables = {"personality": personality_prompt}
+        self._init_prompt_template(partial_variables)
+        self._init_chain()
 
     async def _predict(self, messages: List[BaseMessage]):
         sentences = [message.message for message in messages]
