@@ -1,27 +1,22 @@
 from typing import Any
-
 import gradio as gr
-from langchain.prompts import PromptTemplate
 
-from chatbot.prompt import *
-from chatbot.chain import ChainManager
+from chatbot.bot import Bot
 from chatbot.common.config import Config
+from chatbot.memory import MongoChatbotMemory
 
 
 class BaseGradioUI:
     def __init__(
-        self,
-        config: Config,
-        llm_chain: ChainManager = None,
-        llm=None,
-        prompt_template: PromptTemplate = CHATBOT_PROMPT
+            self,
+            config: Config = None,
+            bot: Bot = None
     ):
-        self.config = config
-        assert llm_chain or (llm and prompt_template), "Must provide llm_chain or llm"
-        if llm_chain:
-            self.chain = llm_chain
-        else:
-            self.chain = ChainManager(config=config)
+        self.config = config if config is not None else Config()
+        self.bot = bot if bot is not None else Bot(config=self.config, memory_class=MongoChatbotMemory)
+
+    def init(self):
+        self.bot.init()
 
     @staticmethod
     def user_state(message: str, chat_history: Any):
@@ -35,8 +30,8 @@ class BaseGradioUI:
         return "", chat_history + [[message, None]]
 
     def load_chat_history(self, chat_history: Any):
-        self.chain.memory.clear()
-        memory = self.chain.memory.chat_memory
+        self.bot.reset_history()
+        memory = self.bot.chain.memory.chat_memory
         for history in chat_history[:-1]:
             memory.add_user_message(history[0])
             memory.add_ai_message(history[1])
@@ -44,8 +39,8 @@ class BaseGradioUI:
     def respond(self, chat_history):
         message = chat_history[-1][0]
         self.load_chat_history(chat_history)
-        bot_message = self.chain.predict(message=message)
-        chat_history[-1][-1] = bot_message
+        result = self.bot.predict(sentence=message)
+        chat_history[-1][-1] = result[0].message
         return chat_history
 
     def start_demo(self, port=8000, debug=False, share=True):

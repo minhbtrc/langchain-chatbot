@@ -1,6 +1,5 @@
-import time
 from queue import Queue
-from threading import Thread
+import asyncio
 
 from chatbot.common.config import Config, BaseSingleton
 from chatbot.chain import ChainManager
@@ -9,28 +8,31 @@ from chatbot.common.objects import BaseMessage
 
 
 class Bot(BaseSingleton):
-    def __init__(self, config: Config = None, clear_first: bool = False):
+    def __init__(
+            self,
+            config: Config = None,
+            clear_first: bool = False,
+            send_message_func=None,
+            memory_class = None
+    ):
+        """
+
+        :param config: some configurations for chatbot
+        :param clear_first: Whether clear conversation memory in starting or not
+        :param send_message_func: Function that display message to user
+        """
         super().__init__()
         self.config = config if config is not None else Config()
-        self.chain = ChainManager(config=config)
+        self.chain = ChainManager(config=config, memory_class=memory_class)
         self.input_queue = Queue(maxsize=6)
         self.worker = None
         self.out_worker = None
-        self.chain.init()
         if clear_first:
             self.reset_history()
-        self.worker = Thread(target=self.task, daemon=True)
-        self.out_worker = Thread(target=self.message, daemon=True)
+        self._send_message_func = send_message_func if send_message_func is not None else print
 
-    def start(self):
-        self.chain.start()
-        self.worker.start()
-        self.out_worker.start()
-
-    def join(self):
-        self.chain.join()
-        self.worker.join()
-        self.out_worker.join()
+    def init(self):
+        self.chain.init()
 
     def set_personality(
             self,
@@ -47,29 +49,41 @@ class Bot(BaseSingleton):
 
     @property
     def send_message_func(self):
-        def _send_message_func(text):
-            print(text)
+        return self._send_message_func
 
-        return _send_message_func
+    def predict(self, sentence: str, role: str = None, user_id: str = ""):
+        if role is None:
+            role = self.config.human_prefix
+        message = BaseMessage(message=sentence, user_id=user_id, role=role)
+        # self.chain.input_queue.put(message)
+        return asyncio.run(self.chain.predict([message]))
 
-    def task(self):
+    def send(self):
+        import random
+        user_id = str(random.randint(10000, 99999))
         while True:
             sentence = input("User:")
-            if sentence:
-                self.chain.input_queue.put(BaseMessage(message=sentence))
-                continue
+            output = self.predict(sentence, user_id=user_id)
+            print("BOT:", output[0].message)
 
-    def message(self):
-        while True:
-            if self.chain.output_queue.empty():
-                time.sleep(0.5)
-                continue
-            message = self.chain.output_queue.get_nowait()
-            self.send_message_func("Bot: " + message.message)
+    # def task(self):
+    #     while True:
+    #         sentence = input("User:")
+    #         if sentence:
+    #             self.predict(sentence=sentence)
+    #
+    # def message(self):
+    #     while True:
+    #         if self.chain.output_queue.empty():
+    #             time.sleep(0.5)
+    #             continue
+    #
+    #         message = self.chain.output_queue.get_nowait()
+    #         self.send_message_func(message)
 
 
 if __name__ == "__main__":
     config = Config()
     bot = Bot(config=config)
-    bot.start()
-    bot.join()
+    bot.init()
+    bot.send()

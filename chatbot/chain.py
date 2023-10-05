@@ -3,6 +3,7 @@ import copy
 import time
 from typing import List, Union
 from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from langchain.chains import ConversationChain
 from langchain.prompts import PromptTemplate
@@ -16,10 +17,14 @@ from chatbot.memory import BaseChatbotMemory
 
 
 class ChainManager(BaseSingleton):
-    def __init__(self, config: Config = None, parameters: dict = None, prompt=CHATBOT_PROMPT):
+    def __init__(
+            self,
+            config: Config = None,
+            parameters: dict = None,
+            memory_class: BaseChatbotMemory = None
+    ):
         super().__init__()
         self.config = config if config is not None else Config()
-        self.prompt: Union[PromptTemplate, None] = prompt
         self.chain = None
         self._base_model = None
         self.input_queue = None
@@ -33,55 +38,38 @@ class ChainManager(BaseSingleton):
         }
         self._memory = None
         self._cache = None
+        self._predict_executor = ThreadPoolExecutor(max_workers=1)
+        memory_class = memory_class if memory_class is not None else BaseChatbotMemory
+        self._memory = memory_class(config=self.config)
+
+    def init(self):
+        self._memory.init()
+        self._init_chain()
 
     @property
     def memory(self):
-        return self.chain.memory
-
-    def init(self):
-        self._init_chain()
-        self.input_queue = Queue(maxsize=self.config.model_max_input_size)
-        self.output_queue = Queue(maxsize=self.config.model_max_input_size)
-        self.input_worker = Thread(target=self.wrapper, daemon=True)
-
-    def start(self):
-        self.input_worker.start()
-
-    def join(self):
-        self.input_worker.join()
-
-    def _merge_prompt(self, partial_variables: dict):
-        partial_variables = {
-            k: v
-            for k, v in partial_variables.items() if k in self._prompt.input_variables
-        }
-        return self._prompt  # .partial(**partial_variables)
-
-    def create_chatbot_memory(self):
-        return BaseChatbotMemory.create(config=self.config)
+        return self._memory.memory
 
     def create_model(self):
         return ChatVertexAI(model_name=self.config.base_model_name, **self.parameters)
 
-    def _init_chain(self, partial_variables: dict = None):
+    def _init_chain(self, partial_variables: dict = None, promt_template: str = CHATBOT_PROMPT):
         if partial_variables is None:
             partial_variables = {"personality": PERSONALITY_PROMPT}
 
-        self._prompt = PromptTemplate(
-            template=self.prompt,
+        _prompt = PromptTemplate(
+            template=promt_template,
             input_variables=["input", "history"],
             partial_variables=partial_variables
         )
         self._cache = ChatbotCache.create(config=self.config)
-        self._memory = self.create_chatbot_memory()
         self._base_model = self.create_model()
 
-        _prompt = self._merge_prompt(partial_variables=partial_variables)
         self.chain = ConversationChain(
             llm=self._base_model,
             prompt=_prompt,
             verbose=True,
-            memory=self._memory
+            memory=self._memory.memory
         )
 
     @property
@@ -99,40 +87,61 @@ class ChainManager(BaseSingleton):
     def set_prompt(self, personality_prompt: str):
         self._init_chain(partial_variables={"personality": personality_prompt})
 
-    def _batch_predict(self, messages: List[BaseMessage]):
+    async def _predict(self, messages: List[BaseMessage]):
         sentences = [message.message for message in messages]
         output = self.chain.batch(sentences)
-        for out in output:
-            self.output_queue.put(BaseMessage(message=out["response"]))
+        output = [
+            BaseMessage(message=out["response"], role=self.config.ai_prefix, user_id=messages[idx].user_id)
+            for idx, out in enumerate(output)
+        ]
+        return output
 
-    def wrapper(self):
-        try:
-            loop = asyncio.get_event_loop()
-        except:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+    async def predict(self, messages: List[BaseMessage]):
+        output = await self._predict(messages=messages)
+        return output
 
-        loop.run_until_complete(self.process())
-
-    async def process(self):
-        batch = []
-        start_waiting_time = time.perf_counter()
-        while True:
-            if self.input_queue.empty() and (time.perf_counter() - start_waiting_time <= self.config.waiting_time):
-                await asyncio.sleep(0.5)
-                continue
-
-            if time.perf_counter() - start_waiting_time <= self.config.waiting_time:
-                message: BaseMessage = self.input_queue.get_nowait()
-                batch.append(message)
-                start_waiting_time = time.perf_counter()
-                continue
-
-            start_waiting_time = time.perf_counter()
-            if batch:
-                _batch = copy.deepcopy(batch)
-                batch = []
-                self._batch_predict(messages=_batch)
-
-    def predict(self, message):
-        return self.chain.predict(input=message)
+    # def wrapper(self):
+    #     try:
+    #         loop = asyncio.get_event_loop()
+    #     except:
+    #         loop = asyncio.new_event_loop()
+    #         asyncio.set_event_loop(loop)
+    #
+    #     loop.run_until_complete(self.process())
+    #
+    # async def process_batch(self):
+    #     batch = []
+    #     start_waiting_time = time.perf_counter()
+    #     while True:
+    #         if self.input_queue.empty() and (time.perf_counter() - start_waiting_time <= self.config.waiting_time):
+    #             await asyncio.sleep(0.5)
+    #             continue
+    #
+    #         if time.perf_counter() - start_waiting_time <= self.config.waiting_time:
+    #             message: BaseMessage = self.input_queue.get_nowait()
+    #             batch.append(message)
+    #             start_waiting_time = time.perf_counter()
+    #             continue
+    #
+    #         start_waiting_time = time.perf_counter()
+    #         if batch:
+    #             _batch = copy.deepcopy(batch)
+    #             batch = []
+    #             loop = asyncio.get_event_loop()
+    #             await loop.run_in_executor(
+    #                 executor=self._predict_executor,
+    #                 func=lambda: self._predict(messages=_batch)
+    #             )
+    #
+    # async def process(self):
+    #     while True:
+    #         if self.input_queue.empty():
+    #             await asyncio.sleep(0.5)
+    #             continue
+    #
+    #         message: BaseMessage = self.input_queue.get_nowait()
+    #         loop = asyncio.get_event_loop()
+    #         await loop.run_in_executor(
+    #             executor=self._predict_executor,
+    #             func=lambda: self._predict(messages=[message])
+    #         )

@@ -35,7 +35,8 @@ class Config(BaseSingleton):
             session_id: str = None,
             mongo_username: str = None,
             mongo_password: str = None,
-            mongo_cluster: str = None
+            mongo_cluster: str = None,
+            memory_window_size: int = 5
     ):
         super().__init__()
         self.credentials = credentials if credentials is not None else os.getenv(CREDENTIALS_FILE)
@@ -61,6 +62,7 @@ class Config(BaseSingleton):
             else os.getenv(MONGO_CONNECTION_STRING,
                            f"mongodb+srv://{self.mongo_username}:{self.mongo_password}@{self.mongo_cluster}.xnkswcg.mongodb.net")
         self.session_id = session_id if session_id is not None else "chatbot"
+        self.memory_window_size = memory_window_size if memory_window_size is not None else 5
         self.ai_prefix = os.getenv(AI_PREFIX, "AI")
         self.human_prefix = os.getenv(HUMAN_PREFIX, "Human")
         self.memory_key = os.getenv(MEMORY_KEY, "history")

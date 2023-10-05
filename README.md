@@ -23,4 +23,4 @@
 
 
 ### Demo
-To run UI demo: `python ./chat_ui/base_ui.py`
+To run UI demo: `python app.py`
