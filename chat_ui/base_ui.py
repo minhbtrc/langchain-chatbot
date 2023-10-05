@@ -1,22 +1,24 @@
 from typing import Any
+
 import gradio as gr
 
 from chatbot.bot import Bot
 from chatbot.common.config import Config
-from chatbot.memory import MongoChatbotMemory
+from chatbot.memory import BaseChatbotMemory
 
 
 class BaseGradioUI:
     def __init__(
             self,
             config: Config = None,
-            bot: Bot = None
+            bot: Bot = None,
+            memory_class: BaseChatbotMemory = BaseChatbotMemory
     ):
         self.config = config if config is not None else Config()
-        self.bot = bot if bot is not None else Bot(config=self.config, memory_class=MongoChatbotMemory)
+        self.bot = bot if bot is not None else Bot(config=self.config, memory_class=memory_class)
 
-    def init(self):
-        self.bot.init()
+    def clear_history(self):
+        self.bot.reset_history()
 
     @staticmethod
     def user_state(message: str, chat_history: Any):
@@ -52,6 +54,7 @@ class BaseGradioUI:
                 message = gr.Textbox(show_label=False,
                                      placeholder="Enter your prompt and press enter",
                                      visible=True)
+            clear = gr.ClearButton([message, chatbot], value="Clear")
             message.submit(
                 self.user_state,
                 [message, chatbot],

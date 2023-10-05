@@ -1,6 +1,8 @@
 from queue import Queue
 import asyncio
 
+from langchain.prompts import PromptTemplate
+
 from chatbot.common.config import Config, BaseSingleton
 from chatbot.chain import ChainManager
 from chatbot.prompt import PERSONALITY_PROMPT
@@ -11,19 +13,27 @@ class Bot(BaseSingleton):
     def __init__(
             self,
             config: Config = None,
+            llm=None,
+            parameters: dict = None,
+            prompt_template: PromptTemplate = None,
             clear_first: bool = False,
             send_message_func=None,
-            memory_class = None
+            memory_class=None
     ):
         """
-
         :param config: some configurations for chatbot
         :param clear_first: Whether clear conversation memory in starting or not
         :param send_message_func: Function that display message to user
         """
         super().__init__()
         self.config = config if config is not None else Config()
-        self.chain = ChainManager(config=config, memory_class=memory_class)
+        self.chain = ChainManager(
+            config=config,
+            llm=llm,
+            parameters=parameters,
+            prompt_template=prompt_template,
+            memory_class=memory_class
+        )
         self.input_queue = Queue(maxsize=6)
         self.worker = None
         self.out_worker = None
@@ -31,15 +41,12 @@ class Bot(BaseSingleton):
             self.reset_history()
         self._send_message_func = send_message_func if send_message_func is not None else print
 
-    def init(self):
-        self.chain.init()
-
     def set_personality(
             self,
             **kwargs
     ):
         personality_prompt = PERSONALITY_PROMPT.format(**kwargs)
-        self.chain.set_prompt(personality_prompt=personality_prompt)
+        self.chain.set_personality_prompt(personality_prompt=personality_prompt)
 
     def reset_history(self):
         self.chain.reset_history()
@@ -85,5 +92,4 @@ class Bot(BaseSingleton):
 if __name__ == "__main__":
     config = Config()
     bot = Bot(config=config)
-    bot.init()
     bot.send()
