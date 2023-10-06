@@ -1,10 +1,5 @@
-import asyncio
-import copy
-import time
-from typing import List, Union
-from threading import Thread
+from typing import List, Optional
 from concurrent.futures import ThreadPoolExecutor
-from queue import Queue
 from langchain.chains import ConversationChain
 from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatVertexAI
@@ -23,7 +18,8 @@ class ChainManager(BaseSingleton):
             llm=None,
             parameters: dict = None,
             memory_class: BaseChatbotMemory = None,
-            prompt_template: PromptTemplate = None
+            prompt_template: PromptTemplate = None,
+            chain_kwargs: Optional[dict] = None
     ):
         super().__init__()
         self.config = config if config is not None else Config()
@@ -47,7 +43,8 @@ class ChainManager(BaseSingleton):
                 partial_variables=partial_variables
             )
         self._cache = ChatbotCache.create(config=self.config)
-        self._init_chain()
+        chain_kwargs = chain_kwargs or {}
+        self._init_chain(**chain_kwargs)
 
     @property
     def memory(self):
@@ -64,18 +61,18 @@ class ChainManager(BaseSingleton):
     def parameters(self, _params: dict):
         self._parameters = _params
 
-    def reset_history(self):
-        self._memory.clear()
+    def reset_history(self, user_id: str):
+        self._memory.clear(user_id=user_id)
 
-    def _init_chain(self):
+    def _init_chain(self, **kwargs):
         self.chain = ConversationChain(
             llm=self._base_model,
             prompt=self._prompt,
-            verbose=True,
-            memory=self.memory
+            memory=self.memory,
+            **kwargs
         )
 
-    def _init_prompt_template(self, partial_variables = None):
+    def _init_prompt_template(self, partial_variables=None):
         self._prompt = PromptTemplate(
             template=CHATBOT_PROMPT,
             input_variables=["input", "history"],
@@ -88,7 +85,7 @@ class ChainManager(BaseSingleton):
         self._init_chain()
 
     async def _predict(self, messages: List[BaseMessage]):
-        sentences = [message.message for message in messages]
+        sentences = [{"input": message.message} for message in messages]
         output = self.chain.batch(sentences)
         output = [
             BaseMessage(message=out["response"], role=self.config.ai_prefix, user_id=messages[idx].user_id)

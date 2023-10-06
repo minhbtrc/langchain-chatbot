@@ -45,5 +45,5 @@ class BaseChatbotMemory(BaseSingleton):
     def memory(self):
         return self._memory
 
-    def clear(self):
-        self._base_memory.clear()
+    def clear(self, user_id: str):
+        self._base_memory.clear_with_id(user_id=user_id)
