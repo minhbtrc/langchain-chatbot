@@ -1,17 +1,16 @@
 from queue import Queue
 import asyncio
-import time
 import random
 
 from langchain.prompts import PromptTemplate
 
-from chatbot.common.config import Config, BaseSingleton
+from chatbot.common.config import Config, BaseObject
 from chatbot.chain import ChainManager
 from chatbot.prompt import PERSONALITY_PROMPT
-from chatbot.common.objects import BaseMessage
+from chatbot.common.objects import Message
 
 
-class Bot(BaseSingleton):
+class Bot(BaseObject):
     def __init__(
             self,
             config: Config = None,
@@ -29,7 +28,8 @@ class Bot(BaseSingleton):
             parameters=parameters,
             prompt_template=prompt_template,
             memory=memory,
-            chain_kwargs={"verbose": True}
+            chain_kwargs={"verbose": True},
+            memory_kwargs={"k": 2}
         )
         self.input_queue = Queue(maxsize=6)
         self._send_message_func = send_message_func if send_message_func is not None else print
@@ -50,11 +50,9 @@ class Bot(BaseSingleton):
     def send_message_func(self):
         return self._send_message_func
 
-    def predict(self, sentence: str, role: str = None, user_id: str = None):
-        if role is None:
-            role = self.config.human_prefix
-        message = BaseMessage(message=sentence, user_id=user_id, role=role)
-        return asyncio.run(self.chain.predict([message]))
+    def predict(self, sentence: str, user_id: str = None):
+        message = Message(message=sentence, role=self.config.human_prefix)
+        return asyncio.run(self.chain(message, user_id=user_id))
 
     # async def process_batch(self):
     #     batch = []

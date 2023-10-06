@@ -1,6 +1,6 @@
 langchain
 google-cloud-aiplatform
-pydantic
+pydantic==1.10.12
 asyncio
 fastapi
 uvicorn

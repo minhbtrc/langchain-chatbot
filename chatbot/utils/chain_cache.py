@@ -1,7 +1,7 @@
 import langchain
 from langchain.cache import InMemoryCache, RedisCache
 
-from chatbot.common.config import BaseSingleton, Config
+from chatbot.common.config import BaseObject, Config
 
 CACHE_TYPE = {
     "in_memory": InMemoryCache,
@@ -9,7 +9,7 @@ CACHE_TYPE = {
 }
 
 
-class ChatbotCache(BaseSingleton):
+class ChatbotCache(BaseObject):
     @classmethod
     def create(cls, config: Config = None):
         config = config if config is not None else Config()

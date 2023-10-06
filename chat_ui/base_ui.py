@@ -4,19 +4,16 @@ import random
 import gradio as gr
 
 from chatbot.bot import Bot
-from chatbot.common.config import Config
 from chatbot.memory import MemoryType
 
 
 class BaseGradioUI:
     def __init__(
             self,
-            config: Config = None,
             bot: Bot = None,
             bot_memory: Optional[MemoryType] = None
     ):
-        self.config = config if config is not None else Config()
-        self.bot = bot if bot is not None else Bot(config=self.config, memory=bot_memory)
+        self.bot = bot if bot is not None else Bot(memory=bot_memory)
         self._user_id = None
 
     def create_user_id(self):
@@ -47,7 +44,7 @@ class BaseGradioUI:
     def respond(self, chat_history):
         message = chat_history[-1][0]
         result = self.bot.predict(sentence=message, user_id=self.user_id)
-        chat_history[-1][-1] = result[0].message
+        chat_history[-1][-1] = result.message
         return chat_history
 
     def start_demo(self, port=8000, debug=False, share=True):

@@ -1,17 +1,16 @@
 from typing import List, Optional
-from concurrent.futures import ThreadPoolExecutor
-from langchain.chains import ConversationChain
+from langchain.chains import ConversationChain, LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatVertexAI
 
-from chatbot.common.config import BaseSingleton, Config
+from chatbot.common.config import BaseObject, Config
 from chatbot.prompt import *
-from chatbot.common.objects import BaseMessage
+from chatbot.common.objects import Message, MessageTurn
 from chatbot.utils import ChatbotCache
-from chatbot.memory import BaseChatbotMemory, MemoryType, MEM_TO_CLASS
+from chatbot.memory import MemoryType, MEM_TO_CLASS
 
 
-class ChainManager(BaseSingleton):
+class ChainManager(BaseObject):
     def __init__(
             self,
             config: Config = None,
@@ -19,7 +18,8 @@ class ChainManager(BaseSingleton):
             parameters: dict = None,
             memory: Optional[MemoryType] = None,
             prompt_template: PromptTemplate = None,
-            chain_kwargs: Optional[dict] = None
+            chain_kwargs: Optional[dict] = None,
+            memory_kwargs: Optional[dict] = None
     ):
         super().__init__()
         self.config = config if config is not None else Config()
@@ -43,7 +43,7 @@ class ChainManager(BaseSingleton):
                 "Somehow both `memory` is None, "
                 "this should never happen."
             )
-        self._memory = memory_class(config=self.config)
+        self._memory = memory_class(config=self.config, **memory_kwargs)
         self._base_model = llm if llm else self.create_default_model()
         if prompt_template:
             self._prompt = prompt_template
@@ -77,12 +77,19 @@ class ChainManager(BaseSingleton):
         self._memory.clear(user_id=user_id)
 
     def _init_chain(self, **kwargs):
-        self.chain = ConversationChain(
-            llm=self._base_model,
-            prompt=self._prompt,
-            memory=self.memory,
-            **kwargs
-        )
+        if isinstance(self._memory, MEM_TO_CLASS[MemoryType.CUSTOM_MEMORY]):
+            self.chain = LLMChain(
+                llm=self._base_model,
+                prompt=self._prompt,
+                **kwargs
+            )
+        else:
+            self.chain = ConversationChain(
+                llm=self._base_model,
+                prompt=self._prompt,
+                memory=self.memory,
+                **kwargs
+            )
 
     def _init_prompt_template(self, partial_variables=None):
         self._prompt = PromptTemplate(
@@ -96,17 +103,20 @@ class ChainManager(BaseSingleton):
         self._init_prompt_template(partial_variables)
         self._init_chain()
 
-    async def _predict(self, messages: List[BaseMessage]):
-        sentences = [{"input": message.message} for message in messages]
-        output = self.chain.batch(sentences)
-        output = [
-            BaseMessage(message=out["response"], role=self.config.ai_prefix, user_id=messages[idx].user_id)
-            for idx, out in enumerate(output)
-        ]
+    async def _predict(self, message: Message, history: str):
+        output = self.chain({"input": message.message, "history": history})
+        output = Message(message=output["text"], role=self.config.ai_prefix)
         return output
 
-    async def predict(self, messages: List[BaseMessage]):
-        output = await self._predict(messages=messages)
+    async def __call__(self, message: Message, user_id: str):
+        history = self.memory.load_history(user_id=user_id)
+        output: Message = await self._predict(message=message, history=history)
+        turn = MessageTurn(
+            human_message=message,
+            ai_message=output,
+            user_id=user_id
+        )
+        self.memory.add_message(turn)
         return output
 
     # def wrapper(self):

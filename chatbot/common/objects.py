@@ -1,7 +1,21 @@
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, Field
 
 
-class BaseMessage(BaseModel):
+class Message(BaseModel):
     message: str = Field(description="User message")
-    role: str = Field(description="Message role in conversation", default="USER")
-    user_id: str = Field(description="User id to distinguish from others", default="-1")
+    role: str = Field(description="Message role in conversation")
+
+
+class MessageTurn(BaseModel):
+    human_message: Message = Field(description="Message of human")
+    ai_message: Message = Field(description="Message of AI")
+    user_id: str = Field(description="The id of user in this turn")
+
+
+def messages_from_dict(message: dict) -> str:
+    human_message = message["human_message"]
+    ai_message = message["ai_message"]
+
+    human_message = Message(message=human_message["message"], role=human_message["role"])
+    ai_message = Message(message=ai_message["message"], role=ai_message["role"])
+    return f"{human_message.role}: {human_message.message}\n{ai_message.role}: {ai_message.message}"
