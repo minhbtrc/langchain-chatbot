@@ -1,55 +1,47 @@
 from queue import Queue
 import asyncio
+import random
 
 from langchain.prompts import PromptTemplate
 
-from chatbot.common.config import Config, BaseSingleton
+from chatbot.common.config import Config, BaseObject
 from chatbot.chain import ChainManager
 from chatbot.prompt import PERSONALITY_PROMPT
-from chatbot.common.objects import BaseMessage
+from chatbot.common.objects import Message
 
 
-class Bot(BaseSingleton):
+class Bot(BaseObject):
     def __init__(
             self,
             config: Config = None,
             llm=None,
             parameters: dict = None,
             prompt_template: PromptTemplate = None,
-            clear_first: bool = False,
             send_message_func=None,
-            memory_class=None
+            memory=None
     ):
-        """
-        :param config: some configurations for chatbot
-        :param clear_first: Whether clear conversation memory in starting or not
-        :param send_message_func: Function that display message to user
-        """
         super().__init__()
         self.config = config if config is not None else Config()
         self.chain = ChainManager(
-            config=config,
+            config=self.config,
             llm=llm,
             parameters=parameters,
             prompt_template=prompt_template,
-            memory_class=memory_class
+            memory=memory,
+            chain_kwargs={"verbose": True},
+            memory_kwargs={"k": 2}
         )
         self.input_queue = Queue(maxsize=6)
-        self.worker = None
-        self.out_worker = None
-        if clear_first:
-            self.reset_history()
         self._send_message_func = send_message_func if send_message_func is not None else print
 
     def set_personality(
             self,
-            **kwargs
+            personalities: str = PERSONALITY_PROMPT
     ):
-        personality_prompt = PERSONALITY_PROMPT.format(**kwargs)
-        self.chain.set_personality_prompt(personality_prompt=personality_prompt)
+        self.chain.set_personality_prompt(personality_prompt=personalities)
 
-    def reset_history(self):
-        self.chain.reset_history()
+    def reset_history(self, user_id: str = None):
+        self.chain.reset_history(user_id=user_id)
 
     def set_parameters(self, params: dict):
         self.chain.parameters = params
@@ -58,15 +50,35 @@ class Bot(BaseSingleton):
     def send_message_func(self):
         return self._send_message_func
 
-    def predict(self, sentence: str, role: str = None, user_id: str = ""):
-        if role is None:
-            role = self.config.human_prefix
-        message = BaseMessage(message=sentence, user_id=user_id, role=role)
-        # self.chain.input_queue.put(message)
-        return asyncio.run(self.chain.predict([message]))
+    def predict(self, sentence: str, user_id: str = None):
+        message = Message(message=sentence, role=self.config.human_prefix)
+        return asyncio.run(self.chain(message, user_id=user_id))
+
+    # async def process_batch(self):
+    #     batch = []
+    #     start_waiting_time = time.perf_counter()
+    #     while True:
+    #         if time.perf_counter() - start_waiting_time <= self.config.waiting_time:
+    #             await asyncio.sleep(0.5)
+    #             continue
+    #
+    #         if time.perf_counter() - start_waiting_time <= self.config.waiting_time:
+    #             message: str = self.input_queue.get_nowait()
+    #             batch.append(message)
+    #             start_waiting_time = time.perf_counter()
+    #             continue
+    #
+    #         start_waiting_time = time.perf_counter()
+    #         if batch:
+    #             _batch = "\n".join(batch)
+    #             batch = []
+    #             loop = asyncio.get_event_loop()
+    #             await loop.run_in_executor(
+    #                 executor=self._predict_executor,
+    #                 func=lambda: self.predict(messages=_batch)
+    #             )
 
     def send(self):
-        import random
         user_id = str(random.randint(10000, 99999))
         while True:
             sentence = input("User:")

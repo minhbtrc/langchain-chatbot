@@ -1,9 +1,10 @@
+from typing import Optional
 from langchain.memory import ConversationBufferWindowMemory, ChatMessageHistory
 
-from chatbot.common.config import BaseSingleton, Config
+from chatbot.common.config import BaseObject, Config
 
 
-class BaseChatbotMemory(BaseSingleton):
+class BaseChatbotMemory(BaseObject):
     __slots__ = ["_base_memory", "_memory"]
 
     def __init__(
@@ -11,22 +12,21 @@ class BaseChatbotMemory(BaseSingleton):
             config: Config = None,
             chat_history_class=ChatMessageHistory,
             memory_class=ConversationBufferWindowMemory,
+            chat_history_kwargs: Optional[dict] = None,
             **kwargs
     ):
         """
         Base chatbot memory
         :param config: Config object
-        :type config: Config
         :param chat_history_class: LangChain's chat history class
-        :type chat_history_class:
         :param memory_class: LangChain's memory class
-        :type memory_class:
         :param kwargs: Memory class kwargs
-        :type kwargs:
         """
+        super().__init__()
         self.config = config if config is not None else Config()
         self._params = kwargs
-        self._base_memory = chat_history_class()
+        chat_history_kwargs = chat_history_kwargs or {}
+        self._base_memory = chat_history_class(**chat_history_kwargs)
         self._memory = memory_class(chat_memory=self._base_memory, **self.params)
 
     @property
@@ -45,5 +45,5 @@ class BaseChatbotMemory(BaseSingleton):
     def memory(self):
         return self._memory
 
-    def clear(self):
+    def clear(self, user_id: str = None):
         self._base_memory.clear()

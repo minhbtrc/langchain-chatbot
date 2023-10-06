@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import vertexai
@@ -20,7 +21,16 @@ class BaseSingleton(metaclass=Singleton):
     pass
 
 
-class Config(BaseSingleton):
+class BaseObject(BaseSingleton):
+    def __init__(self, **kwargs):
+        self.logger = logging.getLogger(self.class_name())
+
+    @classmethod
+    def class_name(cls):
+        return cls.__name__
+
+
+class Config(BaseObject):
     def __init__(
             self,
             credentials: str = None,
@@ -39,7 +49,8 @@ class Config(BaseSingleton):
             memory_window_size: int = 5
     ):
         super().__init__()
-        self.credentials = credentials if credentials is not None else os.getenv(CREDENTIALS_FILE)
+        self.credentials = credentials if credentials is not None else os.getenv(CREDENTIALS_FILE,
+                                                                                 "./secure/vertex.json")
         self.init_env()
         self.serp_api_token = serp_api_token if serp_api_token is not None else ""
         self.cache_type = cache_type if cache_type is not None else "in_memory"
