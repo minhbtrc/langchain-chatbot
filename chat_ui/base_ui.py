@@ -1,11 +1,11 @@
-from typing import Any
+from typing import Any, Optional
 import random
 
 import gradio as gr
 
 from chatbot.bot import Bot
 from chatbot.common.config import Config
-from chatbot.memory import BaseChatbotMemory
+from chatbot.memory import MemoryType
 
 
 class BaseGradioUI:
@@ -13,10 +13,10 @@ class BaseGradioUI:
             self,
             config: Config = None,
             bot: Bot = None,
-            memory_class: BaseChatbotMemory = BaseChatbotMemory
+            bot_memory: Optional[MemoryType] = None
     ):
         self.config = config if config is not None else Config()
-        self.bot = bot if bot is not None else Bot(config=self.config, memory_class=memory_class)
+        self.bot = bot if bot is not None else Bot(config=self.config, memory=bot_memory)
         self._user_id = None
 
     def create_user_id(self):
@@ -42,19 +42,10 @@ class BaseGradioUI:
             message (str): user message
             chat_history (Any): chat history
         """
-
         return "", chat_history + [[message, None]]
-
-    def load_chat_history(self, chat_history: Any):
-        # self.bot.reset_history()
-        memory = self.bot.chain.memory.chat_memory
-        for history in chat_history[:-1]:
-            memory.add_user_message(history[0])
-            memory.add_ai_message(history[1])
 
     def respond(self, chat_history):
         message = chat_history[-1][0]
-        self.load_chat_history(chat_history)
         result = self.bot.predict(sentence=message, user_id=self.user_id)
         chat_history[-1][-1] = result[0].message
         return chat_history

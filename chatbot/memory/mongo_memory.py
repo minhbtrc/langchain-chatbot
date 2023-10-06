@@ -31,7 +31,7 @@ class ChatbotMongoDBChatMessageHistory(MongoDBChatMessageHistory):
         try:
             self.collection.insert_one(
                 {
-                    "UserId": message.user_id,
+                    # "UserId": message.user_id,
                     "SessionId": self.session_id,
                     "History": json.dumps(_message_to_dict(message), ensure_ascii=False),
                 }
@@ -39,33 +39,26 @@ class ChatbotMongoDBChatMessageHistory(MongoDBChatMessageHistory):
         except errors.WriteError as err:
             logger.error(err)
 
-    def clear(self) -> None:
-        # Not allow to clear all
-        return
-        # """Clear session memory from MongoDB"""
-        # from pymongo import errors
-        #
-        # try:
-        #     self.collection.delete_many({"SessionId": self.session_id})
-        # except errors.WriteError as err:
-        #     logger.error(err)
-
     def clear_with_id(self, user_id: str) -> None:
         """Clear session memory from MongoDB"""
         from pymongo import errors
 
         try:
-            self.collection.delete_many({"SessionId": self.session_id, "UserId": user_id})
+            self.collection.delete_many({"SessionId": self.session_id})
         except errors.WriteError as err:
             logger.error(err)
 
 
 class MongoChatbotMemory(BaseChatbotMemory):
     def __init__(self, config: Config = None):
-        super(MongoChatbotMemory, self).__init__(config=config)
-        self.base_memory = ChatbotMongoDBChatMessageHistory(
-            connection_string=self.config.memory_connection_string,
-            session_id=self.config.session_id,
-            database_name=self.config.memory_database_name,
-            collection_name=self.config.memory_collection_name
+        config = config if config is not None else Config()
+        super(MongoChatbotMemory, self).__init__(
+            config=config,
+            chat_history_class=ChatbotMongoDBChatMessageHistory,
+            chat_history_kwargs={
+                "connection_string": config.memory_connection_string,
+                "session_id": config.session_id,
+                "database_name": config.memory_database_name,
+                "collection_name": config.memory_collection_name
+            }
         )

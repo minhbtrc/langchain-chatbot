@@ -8,7 +8,7 @@ from chatbot.common.config import BaseSingleton, Config
 from chatbot.prompt import *
 from chatbot.common.objects import BaseMessage
 from chatbot.utils import ChatbotCache
-from chatbot.memory import BaseChatbotMemory
+from chatbot.memory import BaseChatbotMemory, MemoryType, MEM_TO_CLASS
 
 
 class ChainManager(BaseSingleton):
@@ -17,7 +17,7 @@ class ChainManager(BaseSingleton):
             config: Config = None,
             llm=None,
             parameters: dict = None,
-            memory_class: BaseChatbotMemory = None,
+            memory: Optional[MemoryType] = None,
             prompt_template: PromptTemplate = None,
             chain_kwargs: Optional[dict] = None
     ):
@@ -29,8 +29,20 @@ class ChainManager(BaseSingleton):
             "top_p": 0.8,
             "top_k": 40
         }
-        self._predict_executor = ThreadPoolExecutor(max_workers=1)
-        memory_class = memory_class if memory_class is not None else BaseChatbotMemory
+        if memory is None:
+            memory = MemoryType.BASE_MEMORY
+        if memory is not None:
+            if memory not in MEM_TO_CLASS:
+                raise ValueError(
+                    f"Got unknown memory type: {memory}. "
+                    f"Valid types are: {MEM_TO_CLASS.keys()}."
+                )
+            memory_class = MEM_TO_CLASS[memory]
+        else:
+            raise ValueError(
+                "Somehow both `memory` is None, "
+                "this should never happen."
+            )
         self._memory = memory_class(config=self.config)
         self._base_model = llm if llm else self.create_default_model()
         if prompt_template:
@@ -61,7 +73,7 @@ class ChainManager(BaseSingleton):
     def parameters(self, _params: dict):
         self._parameters = _params
 
-    def reset_history(self, user_id: str):
+    def reset_history(self, user_id: str = None):
         self._memory.clear(user_id=user_id)
 
     def _init_chain(self, **kwargs):

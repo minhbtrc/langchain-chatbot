@@ -19,7 +19,7 @@ class Bot(BaseSingleton):
             parameters: dict = None,
             prompt_template: PromptTemplate = None,
             send_message_func=None,
-            memory_class=None
+            memory=None
     ):
         super().__init__()
         self.config = config if config is not None else Config()
@@ -28,7 +28,7 @@ class Bot(BaseSingleton):
             llm=llm,
             parameters=parameters,
             prompt_template=prompt_template,
-            memory_class=memory_class,
+            memory=memory,
             chain_kwargs={"verbose": True}
         )
         self.input_queue = Queue(maxsize=6)
@@ -40,7 +40,7 @@ class Bot(BaseSingleton):
     ):
         self.chain.set_personality_prompt(personality_prompt=personalities)
 
-    def reset_history(self, user_id: str):
+    def reset_history(self, user_id: str = None):
         self.chain.reset_history(user_id=user_id)
 
     def set_parameters(self, params: dict):
