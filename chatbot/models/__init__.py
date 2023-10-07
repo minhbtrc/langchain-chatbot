@@ -1,2 +1,2 @@
-from chabot.models.base import CustomLLM
-from chabot.models.model_types import ModelTypes, MODEL_TO_CLASS
+from chatbot.models.base import CustomLLM
+from chatbot.models.model_types import ModelTypes, MODEL_TO_CLASS

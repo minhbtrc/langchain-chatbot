@@ -2,7 +2,7 @@ from enum import Enum
 from chatbot.memory import MongoChatbotMemory, BaseChatbotMemory, CustomMongoChatbotMemory
 
 
-class MemoryType(str, Enum):
+class MemoryTypes(str, Enum):
     """Enumerator with the Memory types."""
     BASE_MEMORY = "base-memory"
     MONGO_MEMORY = "mongodb-memory"

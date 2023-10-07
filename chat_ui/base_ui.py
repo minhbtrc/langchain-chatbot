@@ -4,16 +4,17 @@ import random
 import gradio as gr
 
 from chatbot.bot import Bot
-from chatbot.memory import MemoryType
+from chatbot import MemoryTypes, ModelTypes
 
 
 class BaseGradioUI:
     def __init__(
             self,
             bot: Bot = None,
-            bot_memory: Optional[MemoryType] = None
+            bot_memory: Optional[MemoryTypes] = None,
+            bot_model: Optional[ModelTypes] = None
     ):
-        self.bot = bot if bot is not None else Bot(memory=bot_memory)
+        self.bot = bot if bot is not None else Bot(memory=bot_memory, model=bot_model)
         self._user_id = None
 
     def create_user_id(self):

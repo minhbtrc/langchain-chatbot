@@ -14,20 +14,18 @@ class Bot(BaseObject):
     def __init__(
             self,
             config: Config = None,
-            llm=None,
-            parameters: dict = None,
             prompt_template: PromptTemplate = None,
             send_message_func=None,
-            memory=None
+            memory=None,
+            model=None
     ):
         super().__init__()
         self.config = config if config is not None else Config()
         self.chain = ChainManager(
             config=self.config,
-            llm=llm,
-            parameters=parameters,
             prompt_template=prompt_template,
             memory=memory,
+            model=model,
             chain_kwargs={"verbose": True},
             memory_kwargs={"k": 2},
             model_kwargs={
