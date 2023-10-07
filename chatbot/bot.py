@@ -29,7 +29,13 @@ class Bot(BaseObject):
             prompt_template=prompt_template,
             memory=memory,
             chain_kwargs={"verbose": True},
-            memory_kwargs={"k": 2}
+            memory_kwargs={"k": 2},
+            model_kwargs={
+                "max_output_tokens": 512,
+                "temperature": 0.2,
+                "top_p": 0.8,
+                "top_k": 40
+            }
         )
         self.input_queue = Queue(maxsize=6)
         self._send_message_func = send_message_func if send_message_func is not None else print
@@ -42,9 +48,6 @@ class Bot(BaseObject):
 
     def reset_history(self, user_id: str = None):
         self.chain.reset_history(user_id=user_id)
-
-    def set_parameters(self, params: dict):
-        self.chain.parameters = params
 
     @property
     def send_message_func(self):

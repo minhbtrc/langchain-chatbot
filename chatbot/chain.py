@@ -1,13 +1,13 @@
 from typing import List, Optional
 from langchain.chains import ConversationChain, LLMChain
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatVertexAI
 
 from chatbot.common.config import BaseObject, Config
 from chatbot.prompt import *
 from chatbot.common.objects import Message, MessageTurn
 from chatbot.utils import ChatbotCache
 from chatbot.memory import MemoryType, MEM_TO_CLASS
+from chatbot.models import ModelTypes, MODEL_TO_CLASS, CustomLLM
 
 
 class ChainManager(BaseObject):
@@ -15,20 +15,15 @@ class ChainManager(BaseObject):
             self,
             config: Config = None,
             llm=None,
-            parameters: dict = None,
             memory: Optional[MemoryType] = None,
+            model: Optional[ModelTypes] = None,
             prompt_template: PromptTemplate = None,
             chain_kwargs: Optional[dict] = None,
-            memory_kwargs: Optional[dict] = None
+            memory_kwargs: Optional[dict] = None,
+            model_kwargs: Optional[dict] = None
     ):
         super().__init__()
         self.config = config if config is not None else Config()
-        self._parameters = parameters if parameters is not None else {
-            "max_output_tokens": 512,
-            "temperature": 0.2,
-            "top_p": 0.8,
-            "top_k": 40
-        }
         if memory is None:
             memory = MemoryType.BASE_MEMORY
         if memory is not None:
@@ -44,7 +39,7 @@ class ChainManager(BaseObject):
                 "this should never happen."
             )
         self._memory = memory_class(config=self.config, **memory_kwargs)
-        self._base_model = llm if llm else self.create_default_model()
+        self._base_model = CustomLLM.create_model(config=self.config, parameters=model_kwargs)
         if prompt_template:
             self._prompt = prompt_template
         else:
@@ -61,17 +56,6 @@ class ChainManager(BaseObject):
     @property
     def memory(self):
         return self._memory.memory
-
-    def create_default_model(self):
-        return ChatVertexAI(model_name=self.config.base_model_name, **self.parameters)
-
-    @property
-    def parameters(self):
-        return self._parameters
-
-    @parameters.setter
-    def parameters(self, _params: dict):
-        self._parameters = _params
 
     def reset_history(self, user_id: str = None):
         self._memory.clear(user_id=user_id)
