@@ -1,50 +1,31 @@
-from typing import List, Optional
+from typing import Optional
 from langchain.chains import ConversationChain, LLMChain
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatVertexAI
 
 from chatbot.common.config import BaseObject, Config
 from chatbot.prompt import *
 from chatbot.common.objects import Message, MessageTurn
 from chatbot.utils import ChatbotCache
-from chatbot.memory import MemoryType, MEM_TO_CLASS
+from chatbot.memory import MemoryTypes, MEM_TO_CLASS
+from chatbot.models import ModelTypes, MODEL_TO_CLASS, CustomLLM
 
 
 class ChainManager(BaseObject):
     def __init__(
             self,
             config: Config = None,
-            llm=None,
-            parameters: dict = None,
-            memory: Optional[MemoryType] = None,
+            memory: Optional[MemoryTypes] = None,
+            model: Optional[ModelTypes] = None,
             prompt_template: PromptTemplate = None,
             chain_kwargs: Optional[dict] = None,
-            memory_kwargs: Optional[dict] = None
+            memory_kwargs: Optional[dict] = None,
+            model_kwargs: Optional[dict] = None
     ):
         super().__init__()
         self.config = config if config is not None else Config()
-        self._parameters = parameters if parameters is not None else {
-            "max_output_tokens": 512,
-            "temperature": 0.2,
-            "top_p": 0.8,
-            "top_k": 40
-        }
-        if memory is None:
-            memory = MemoryType.BASE_MEMORY
-        if memory is not None:
-            if memory not in MEM_TO_CLASS:
-                raise ValueError(
-                    f"Got unknown memory type: {memory}. "
-                    f"Valid types are: {MEM_TO_CLASS.keys()}."
-                )
-            memory_class = MEM_TO_CLASS[memory]
-        else:
-            raise ValueError(
-                "Somehow both `memory` is None, "
-                "this should never happen."
-            )
-        self._memory = memory_class(config=self.config, **memory_kwargs)
-        self._base_model = llm if llm else self.create_default_model()
+
+        self._memory = self.get_memory(memory_type=memory, parameters=memory_kwargs)
+        self._base_model = self.get_model(model_type=model, parameters=model_kwargs)
         if prompt_template:
             self._prompt = prompt_template
         else:
@@ -58,26 +39,65 @@ class ChainManager(BaseObject):
         chain_kwargs = chain_kwargs or {}
         self._init_chain(**chain_kwargs)
 
+    def get_memory(
+            self,
+            memory_type: Optional[MemoryTypes] = None,
+            parameters: Optional[dict] = None
+    ):
+        if memory_type is None:
+            memory_type = MemoryTypes.BASE_MEMORY
+        if memory_type is not None:
+            if memory_type not in MEM_TO_CLASS:
+                raise ValueError(
+                    f"Got unknown memory type: {memory_type}. "
+                    f"Valid types are: {MEM_TO_CLASS.keys()}."
+                )
+            memory_class = MEM_TO_CLASS[memory_type]
+        else:
+            raise ValueError(
+                "Somehow both `memory` is None, "
+                "this should never happen."
+            )
+        return memory_class(config=self.config, **parameters)
+
+    def get_model(
+            self,
+            model_type: Optional[ModelTypes] = None,
+            model_name: str = None,
+            parameters: Optional[dict] = None
+    ):
+        if model_type is None:
+            model_type = ModelTypes.VERTEX
+
+        if model_type is not None:
+            if model_type not in MODEL_TO_CLASS:
+                raise ValueError(
+                    f"Got unknown model type: {model_type}. "
+                    f"Valid types are: {MODEL_TO_CLASS.keys()}."
+                )
+            model_class = MODEL_TO_CLASS[model_type]
+        else:
+            raise ValueError(
+                "Somehow both `memory` is None, "
+                "this should never happen."
+            )
+
+        if model_type in [ModelTypes.VERTEX, ModelTypes.OPENAI]:
+            if not model_name:
+                model_name = self.config.base_model_name
+            return model_class(model_name=model_name, **parameters)
+
+        return model_class(config=self.config, **parameters)
+
     @property
     def memory(self):
         return self._memory.memory
-
-    def create_default_model(self):
-        return ChatVertexAI(model_name=self.config.base_model_name, **self.parameters)
-
-    @property
-    def parameters(self):
-        return self._parameters
-
-    @parameters.setter
-    def parameters(self, _params: dict):
-        self._parameters = _params
 
     def reset_history(self, user_id: str = None):
         self._memory.clear(user_id=user_id)
 
     def _init_chain(self, **kwargs):
-        if isinstance(self._memory, MEM_TO_CLASS[MemoryType.CUSTOM_MEMORY]):
+        if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
             self.chain = LLMChain(
                 llm=self._base_model,
                 prompt=self._prompt,
