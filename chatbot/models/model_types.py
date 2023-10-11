@@ -1,7 +1,6 @@
 from enum import Enum
 from langchain.chat_models import ChatVertexAI, ChatOpenAI
-
-from chatbot.models.llamacpp import LlamaCpp
+from langchain.llms import LlamaCpp
 
 
 class ModelTypes(str, Enum):

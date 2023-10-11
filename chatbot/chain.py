@@ -7,7 +7,7 @@ from chatbot.prompt import *
 from chatbot.common.objects import Message, MessageTurn
 from chatbot.utils import ChatbotCache
 from chatbot.memory import MemoryTypes, MEM_TO_CLASS
-from chatbot.models import ModelTypes, MODEL_TO_CLASS, CustomLLM
+from chatbot.models import ModelTypes, MODEL_TO_CLASS
 
 
 class ChainManager(BaseObject):
@@ -86,15 +86,14 @@ class ChainManager(BaseObject):
             if not model_name:
                 model_name = self.config.base_model_name
             return model_class(model_name=model_name, **parameters)
-
-        return model_class(config=self.config, **parameters)
+        return model_class(**parameters, return_messages=True)
 
     @property
     def memory(self):
-        return self._memory.memory
+        return self._memory
 
     def reset_history(self, user_id: str = None):
-        self._memory.clear(user_id=user_id)
+        self.memory.clear(user_id=user_id)
 
     def _init_chain(self, **kwargs):
         if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
@@ -107,7 +106,7 @@ class ChainManager(BaseObject):
             self.chain = ConversationChain(
                 llm=self._base_model,
                 prompt=self._prompt,
-                memory=self.memory,
+                memory=self.memory.memory,
                 **kwargs
             )
 
@@ -123,9 +122,13 @@ class ChainManager(BaseObject):
         self._init_prompt_template(partial_variables)
         self._init_chain()
 
-    async def _predict(self, message: Message, history: str):
-        output = self.chain({"input": message.message, "history": history})
-        output = Message(message=output["text"], role=self.config.ai_prefix)
+    async def _predict(self, message: Message, history):
+        if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
+            output = self.chain({"input": message.message, "history": history})
+            output = Message(message=output["text"], role=self.config.ai_prefix)
+        else:
+            output = self.chain.predict(input=message.message)
+            output = Message(message=output, role=self.config.ai_prefix)
         return output
 
     async def __call__(self, message: Message, user_id: str):

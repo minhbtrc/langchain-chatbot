@@ -91,3 +91,9 @@ class CustomMongoChatbotMemory(BaseObject):
 
     def clear(self, user_id: str = None):
         self.memory.clear_history(user_id=user_id)
+
+    def load_history(self, user_id: str):
+        return self.memory.load_history(user_id)
+
+    def add_message(self, message_turn: MessageTurn):
+        self.memory.add_message(message_turn)

@@ -60,9 +60,9 @@ class Config(BaseObject):
 
         self.mongo_username = mongo_username if mongo_username is not None else os.getenv(MONGO_USERNAME)
         self.mongo_password = mongo_password if mongo_password is not None else os.getenv(MONGO_PASSWORD)
-        if mongo_password:
+        if self.mongo_password:
             self.mongo_password = urllib.parse.quote_plus(self.mongo_password)
-        if mongo_username:
+        if self.mongo_username:
             self.mongo_username = urllib.parse.quote_plus(self.mongo_username)
         self.mongo_cluster = mongo_cluster if mongo_cluster is not None else os.getenv(MONGO_CLUSTER)
         self.memory_database_name = memory_database_name if memory_database_name is not None \
