@@ -1,9 +1,12 @@
-from queue import Queue
 import asyncio
 import random
+from queue import Queue
+from typing import Optional, Dict
 
 from langchain.prompts import PromptTemplate
 
+from chatbot.memory import MemoryTypes
+from chatbot.models import ModelTypes
 from chatbot.common.config import Config, BaseObject
 from chatbot.chain import ChainManager
 from chatbot.prompt import PERSONALITY_PROMPT
@@ -15,10 +18,29 @@ class Bot(BaseObject):
             self,
             config: Config = None,
             prompt_template: PromptTemplate = None,
-            send_message_func=None,
-            memory=None,
-            model=None
+            memory: Optional[MemoryTypes] = None,
+            model: Optional[ModelTypes] = None,
+            chain_kwargs: Optional[Dict] = None,
+            memory_kwargs: Optional[Dict] = None,
+            model_kwargs: Optional[Dict] = None,
     ):
+        """
+        Conversation chatbot
+        :param config: System configuration
+        :type config: Config
+        :param prompt_template: Prompt template
+        :type prompt_template: PromptTemplate
+        :param memory: Conversation memory type
+        :type memory: MemoryTypes
+        :param model: Model type
+        :type model: ModelTypes
+        :param chain_kwargs: Keyword arguments for LangChain's chain. Default with verbose
+        :type chain_kwargs: Dict
+        :param memory_kwargs: Keyword arguments for Memory. Default with ConversationWindowBuffer arguments
+        :type memory_kwargs: Dict
+        :param model_kwargs: Keyword arguments for Model. Default with VertexAI arguments
+        :type model_kwargs: Dict
+        """
         super().__init__()
         self.config = config if config is not None else Config()
         self.chain = ChainManager(
@@ -26,17 +48,26 @@ class Bot(BaseObject):
             prompt_template=prompt_template,
             memory=memory,
             model=model,
-            chain_kwargs={"verbose": True},
-            memory_kwargs={"k": 2},
-            model_kwargs={
-                "max_output_tokens": 512,
-                "temperature": 0.2,
-                "top_p": 0.8,
-                "top_k": 40
-            }
+            chain_kwargs=chain_kwargs if chain_kwargs else {"verbose": True},
+            memory_kwargs=memory_kwargs if memory_kwargs else self.default_memory_kwargs,
+            model_kwargs=model_kwargs if model_kwargs else self.default_model_kwargs
         )
         self.input_queue = Queue(maxsize=6)
-        self._send_message_func = send_message_func if send_message_func is not None else print
+
+    @property
+    def default_model_kwargs(self):
+        return {
+            "max_output_tokens": 512,
+            "temperature": 0.2,
+            "top_p": 0.8,
+            "top_k": 40
+        }
+
+    @property
+    def default_memory_kwargs(self):
+        return {
+            "k": 2
+        }
 
     def set_personality(
             self,
@@ -46,10 +77,6 @@ class Bot(BaseObject):
 
     def reset_history(self, user_id: str = None):
         self.chain.reset_history(user_id=user_id)
-
-    @property
-    def send_message_func(self):
-        return self._send_message_func
 
     def predict(self, sentence: str, user_id: str = None):
         message = Message(message=sentence, role=self.config.human_prefix)

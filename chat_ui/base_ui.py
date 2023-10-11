@@ -17,40 +17,30 @@ class BaseGradioUI:
         self.bot = bot if bot is not None else Bot(memory=bot_memory, model=bot_model)
         self._user_id = None
 
-    def create_user_id(self):
-        self.user_id = str(random.randint(100000000, 999999999))
-
-    def clear_history(self):
-        if self.user_id:
-            self.bot.reset_history(self.user_id)
-
-    @property
-    def user_id(self):
-        return self._user_id
-
-    @user_id.setter
-    def user_id(self, _id: str):
-        self._user_id = _id
-
     @staticmethod
-    def user_state(message: str, chat_history: Any):
+    def create_user_id():
+        return str(random.randint(100000000, 999999999))
+
+    def user_state(self, message: str, chat_history: Any, user_id):
         """Initiate user state and chat history
 
         Args:
             message (str): user message
             chat_history (Any): chat history
         """
-        return "", chat_history + [[message, None]]
+        if not user_id:
+            user_id = self.create_user_id()
+        return "", chat_history + [[message, None]], user_id
 
-    def respond(self, chat_history):
+    def respond(self, user_id, chat_history):
         message = chat_history[-1][0]
-        result = self.bot.predict(sentence=message, user_id=self.user_id)
+        result = self.bot.predict(sentence=message, user_id=user_id)
         chat_history[-1][-1] = result.message
         return chat_history
 
     def start_demo(self, port=8000, debug=False, share=True):
         with gr.Blocks() as demo:
-            self.create_user_id()
+            user_id_state = gr.State("")
             gr.Markdown("""<h1><center> LLM Assistant </center></h1>""")
             chatbot = gr.Chatbot(label="Assistant").style(height=700)
 
@@ -59,19 +49,22 @@ class BaseGradioUI:
                                      placeholder="Enter your prompt and press enter",
                                      visible=True)
 
-            btn_refresh = gr.Button(value="Refresh the conversation history")
-            btn_refresh.click(fn=self.create_user_id, inputs=[])
+            btn_refresh = gr.ClearButton(components=[message, chatbot],
+                                         value="Refresh the conversation history")
+
+            def clear_user_state():
+                return {user_id_state: ""}
 
             message.submit(
                 self.user_state,
-                inputs=[message, chatbot],
-                outputs=[message, chatbot],
+                inputs=[message, chatbot, user_id_state],
+                outputs=[message, chatbot, user_id_state],
                 queue=False
             ).then(
                 self.respond,
-                inputs=chatbot,
-                outputs=chatbot
+                inputs=[user_id_state, chatbot],
+                outputs=[chatbot]
             )
-
+            btn_refresh.click(clear_user_state, outputs=user_id_state)
         demo.queue()
         demo.launch(debug=debug, server_port=port, share=share)
