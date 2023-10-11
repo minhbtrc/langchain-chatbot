@@ -6,3 +6,7 @@
 - Pending:
   - Can't handle multi user yet.
   - Need update Mongo memory to save history with user_id.
+
+## v1.0.1
+- Can save user info
+- Bot can collect user info and save user personality

@@ -9,7 +9,7 @@ from chatbot.memory import MemoryTypes
 from chatbot.models import ModelTypes
 from chatbot.common.config import Config, BaseObject
 from chatbot.chain import ChainManager
-from chatbot.prompt import PERSONALITY_PROMPT
+from chatbot.prompt import BOT_PERSONALITY
 from chatbot.common.objects import Message
 
 
@@ -20,9 +20,10 @@ class Bot(BaseObject):
             prompt_template: PromptTemplate = None,
             memory: Optional[MemoryTypes] = None,
             model: Optional[ModelTypes] = None,
-            chain_kwargs: Optional[Dict] = None,
-            memory_kwargs: Optional[Dict] = None,
-            model_kwargs: Optional[Dict] = None,
+            chain_kwargs: Optional[dict] = None,
+            memory_kwargs: Optional[dict] = None,
+            model_kwargs: Optional[dict] = None,
+            bot_personality: str = BOT_PERSONALITY
     ):
         """
         Conversation chatbot
@@ -46,6 +47,7 @@ class Bot(BaseObject):
         self.chain = ChainManager(
             config=self.config,
             prompt_template=prompt_template,
+            bot_personality=bot_personality,
             memory=memory,
             model=model,
             chain_kwargs=chain_kwargs if chain_kwargs else {"verbose": True},
@@ -71,9 +73,12 @@ class Bot(BaseObject):
 
     def set_personality(
             self,
-            personalities: str = PERSONALITY_PROMPT
+            bot_personalities: str = BOT_PERSONALITY
     ):
-        self.chain.set_personality_prompt(personality_prompt=personalities)
+        self.chain.set_personality_prompt(
+            personality_prompt=bot_personalities,
+            user_personality=""
+        )
 
     def reset_history(self, user_id: str = None):
         self.chain.reset_history(user_id=user_id)
@@ -82,51 +87,12 @@ class Bot(BaseObject):
         message = Message(message=sentence, role=self.config.human_prefix)
         return asyncio.run(self.chain(message, user_id=user_id))
 
-    # async def process_batch(self):
-    #     batch = []
-    #     start_waiting_time = time.perf_counter()
-    #     while True:
-    #         if time.perf_counter() - start_waiting_time <= self.config.waiting_time:
-    #             await asyncio.sleep(0.5)
-    #             continue
-    #
-    #         if time.perf_counter() - start_waiting_time <= self.config.waiting_time:
-    #             message: str = self.input_queue.get_nowait()
-    #             batch.append(message)
-    #             start_waiting_time = time.perf_counter()
-    #             continue
-    #
-    #         start_waiting_time = time.perf_counter()
-    #         if batch:
-    #             _batch = "\n".join(batch)
-    #             batch = []
-    #             loop = asyncio.get_event_loop()
-    #             await loop.run_in_executor(
-    #                 executor=self._predict_executor,
-    #                 func=lambda: self.predict(messages=_batch)
-    #             )
-
     def send(self):
         user_id = str(random.randint(10000, 99999))
         while True:
             sentence = input("User:")
             output = self.predict(sentence, user_id=user_id)
             print("BOT:", output[0].message)
-
-    # def task(self):
-    #     while True:
-    #         sentence = input("User:")
-    #         if sentence:
-    #             self.predict(sentence=sentence)
-    #
-    # def message(self):
-    #     while True:
-    #         if self.chain.output_queue.empty():
-    #             time.sleep(0.5)
-    #             continue
-    #
-    #         message = self.chain.output_queue.get_nowait()
-    #         self.send_message_func(message)
 
 
 if __name__ == "__main__":
