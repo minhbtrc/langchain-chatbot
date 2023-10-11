@@ -1,6 +1,7 @@
 from typing import Optional
 from langchain.chains import ConversationChain, LLMChain
 from langchain.prompts import PromptTemplate
+from langchain import hub
 
 from chatbot.common.config import BaseObject, Config
 from chatbot.prompt import *
@@ -19,7 +20,8 @@ class ChainManager(BaseObject):
             prompt_template: PromptTemplate = None,
             chain_kwargs: Optional[dict] = None,
             memory_kwargs: Optional[dict] = None,
-            model_kwargs: Optional[dict] = None
+            model_kwargs: Optional[dict] = None,
+            bot_personality: Optional[str] = BOT_PERSONALITY
     ):
         super().__init__()
         self.config = config if config is not None else Config()
@@ -29,15 +31,14 @@ class ChainManager(BaseObject):
         if prompt_template:
             self._prompt = prompt_template
         else:
-            partial_variables = {"personality": PERSONALITY_PROMPT}
-            self._prompt = PromptTemplate(
-                template=CHATBOT_PROMPT,
-                input_variables=["input", "history"],
-                partial_variables=partial_variables
-            )
-        self._cache = ChatbotCache.create(config=self.config)
+            partial_variables = {
+                "bot_personality": bot_personality or BOT_PERSONALITY,
+                "user_personality": "",
+            }
+            self._init_prompt_template(partial_variables=partial_variables)
         chain_kwargs = chain_kwargs or {}
         self._init_chain(**chain_kwargs)
+        self._cache = ChatbotCache.create(config=self.config)
 
     def get_memory(
             self,
@@ -111,16 +112,17 @@ class ChainManager(BaseObject):
             )
 
     def _init_prompt_template(self, partial_variables=None):
-        self._prompt = PromptTemplate(
-            template=CHATBOT_PROMPT,
-            input_variables=["input", "history"],
-            partial_variables=partial_variables
-        )
+        _prompt: PromptTemplate = hub.pull("minhi/personality-chatbot-prompt")
+        self._prompt = _prompt.partial(**partial_variables)
 
-    def set_personality_prompt(self, personality_prompt: str):
-        partial_variables = {"personality": personality_prompt}
+    def set_personality_prompt(self, bot_personality: str = BOT_PERSONALITY, user_personality: str = ""):
+        partial_variables = {
+            "bot_personality": bot_personality,
+            "user_personality": user_personality
+        }
         self._init_prompt_template(partial_variables)
-        self._init_chain()
+        self.chain.prompt = self._prompt
+        # self._init_chain()
 
     async def _predict(self, message: Message, history):
         if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):

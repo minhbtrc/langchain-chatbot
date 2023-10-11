@@ -9,7 +9,7 @@ from chatbot import MemoryTypes
 from chatbot.models import ModelTypes
 from chatbot.common.config import Config
 from chatbot.bot import Bot
-from chatbot.prompt import LLAMA_PROMPT, PERSONALITY_PROMPT
+from chatbot.prompt import LLAMA_PROMPT, BOT_PERSONALITY
 
 
 if __name__ == "__main__":
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     config = Config()
     callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
-    partial_variables = {"personality": PERSONALITY_PROMPT}
+    partial_variables = {"personality": BOT_PERSONALITY}
     prompt_template = PromptTemplate(
         template=LLAMA_PROMPT,
         input_variables=["history", "input"],
