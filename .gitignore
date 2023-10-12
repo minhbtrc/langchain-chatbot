@@ -1,5 +1,7 @@
-.env
+chatbot/.env
 secure/*
 .idea/
+__pycache__/
 */__pycache__/
 */*/__pycache__/
+*/*/*/__pycache__/

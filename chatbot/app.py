@@ -1,6 +1,5 @@
-from pydantic import BaseModel
 import json
-from typing import Optional, List, Dict, AsyncIterator
+from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,19 +34,20 @@ async def transform_stream_for_client(
 @app.post("/chat")
 async def chat_endpoint(request: ChatRequest):
     sentence = request.message
-    chat_history = request.history or []
-    converted_chat_history = ""
-    for message in chat_history:
-        if message.get("human") is not None:
-            converted_chat_history += "Human: {}\n".format(message["human"])
-        if message.get("ai") is not None:
-            converted_chat_history += "AI: {}\n".format(message["ai"])
-    stream = bot.chain.chain.astream_log(
-        {"input": sentence, "history": converted_chat_history},
-        include_names=["FindDocs"]
+    chat_history = request.history
+    if chat_history:
+        bot.chain.add_message_to_memory(
+            human_message=chat_history[-1]["human"],
+            ai_message=chat_history[-1]["ai"],
+            conversation_id=request.conversation_id
+        )
+
+    chain_stream = bot.chain.chain_stream(
+        input=sentence,
+        conversation_id=request.conversation_id
     )
     return StreamingResponse(
-        transform_stream_for_client(stream),
+        transform_stream_for_client(chain_stream),
         headers={"Content-Type": "text/event-stream"},
     )
 

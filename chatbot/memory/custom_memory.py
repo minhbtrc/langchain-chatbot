@@ -36,12 +36,12 @@ class BaseCustomMongoChatbotMemory(BaseObject):
         self.k = k
 
     def add_message(self, message_turn: MessageTurn):
-        user_id = message_turn.user_id
+        conversation_id = message_turn.conversation_id
         try:
-            self.logger.info(f"Save 1 message turn of user <{user_id}>")
+            self.logger.info(f"Save 1 message turn of conversation <{conversation_id}>")
             self.collection.insert_one(
                 {
-                    "UserId": user_id,
+                    "ConversationId": conversation_id,
                     "SessionId": self.session_id,
                     "History": json.dumps(message_turn.dict(), ensure_ascii=False),
                 }
@@ -49,23 +49,23 @@ class BaseCustomMongoChatbotMemory(BaseObject):
         except errors.WriteError as err:
             self.logger.error(err)
 
-    def clear_history(self, user_id: str = None):
+    def clear_history(self, conversation_id: str = None):
         try:
-            self.logger.info(f"Deleting the history of user <{user_id}> at session <{self.session_id}>")
-            if user_id is None:
+            self.logger.info(f"Deleting the history of conversation <{conversation_id}> at session <{self.session_id}>")
+            if conversation_id is None:
                 self.logger.warning(f"You are deleting all collection with session: {self.session_id}")
                 self.collection.delete_many({"SessionId": self.session_id})
             else:
-                self.collection.delete_many({"SessionId": self.session_id, "UserId": user_id})
+                self.collection.delete_many({"SessionId": self.session_id, "ConversationId": conversation_id})
         except errors.WriteError as err:
             self.logger.error(err)
 
-    def load_history(self, user_id: str) -> str:
+    def load_history(self, conversation_id: str) -> str:
         """Retrieve the messages from MongoDB"""
         from pymongo import errors
         cursor = None
         try:
-            cursor = self.collection.find({"SessionId": self.session_id, "UserId": user_id})
+            cursor = self.collection.find({"SessionId": self.session_id, "ConversationId": conversation_id})
         except errors.OperationFailure as error:
             self.logger.error(error)
 
@@ -89,11 +89,11 @@ class CustomMongoChatbotMemory(BaseObject):
             **kwargs
         )
 
-    def clear(self, user_id: str = None):
-        self.memory.clear_history(user_id=user_id)
+    def clear(self, conversation_id: str = None):
+        self.memory.clear_history(conversation_id=conversation_id)
 
-    def load_history(self, user_id: str):
-        return self.memory.load_history(user_id)
+    def load_history(self, conversation_id: str):
+        return self.memory.load_history(conversation_id)
 
     def add_message(self, message_turn: MessageTurn):
         self.memory.add_message(message_turn)

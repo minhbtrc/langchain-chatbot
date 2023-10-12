@@ -29,8 +29,9 @@ import { apiBaseUrl } from "../utils/constants";
 export function ChatWindow(props: {
   placeholder?: string;
   titleText?: string;
+  conversationId: string;
 }) {
-  const conversationId = uuidv4();
+//   const conversationId = uuidv4();
   const messageContainerRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<Array<Message>>([]);
   const [input, setInput] = useState("");
@@ -40,7 +41,7 @@ export function ChatWindow(props: {
     { human: string; ai: string }[]
   >([]);
 
-  const { placeholder, titleText = "An LLM" } = props;
+  const { placeholder, titleText = "An LLM" , conversationId} = props;
 
   const sendMessage = async (message?: string) => {
     if (messageContainerRef.current) {

@@ -10,7 +10,7 @@ class Message(BaseModel):
 class MessageTurn(BaseModel):
     human_message: Message = Field(description="Message of human")
     ai_message: Message = Field(description="Message of AI")
-    user_id: str = Field(description="The id of user in this turn")
+    conversation_id: str = Field(description="The id of user in this turn")
 
 
 class ChatRequest(BaseModel):

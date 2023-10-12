@@ -62,7 +62,8 @@ class Bot(BaseObject):
             "max_output_tokens": 512,
             "temperature": 0.2,
             "top_p": 0.8,
-            "top_k": 40
+            "top_k": 40,
+            # "streaming": True
         }
 
     @property
@@ -80,18 +81,18 @@ class Bot(BaseObject):
             user_personality=""
         )
 
-    def reset_history(self, user_id: str = None):
-        self.chain.reset_history(user_id=user_id)
+    def reset_history(self, conversation_id: str = None):
+        self.chain.reset_history(conversation_id=conversation_id)
 
-    def predict(self, sentence: str, user_id: str = None):
+    def predict(self, sentence: str, conversation_id: str = None):
         message = Message(message=sentence, role=self.config.human_prefix)
-        return asyncio.run(self.chain(message, user_id=user_id))
+        return asyncio.run(self.chain(message, conversation_id=conversation_id))
 
     def send(self):
-        user_id = str(random.randint(10000, 99999))
+        conversation_id = str(random.randint(10000, 99999))
         while True:
             sentence = input("User:")
-            output = self.predict(sentence, user_id=user_id)
+            output = self.predict(sentence, conversation_id=conversation_id)
             print("BOT:", output[0].message)
 
 

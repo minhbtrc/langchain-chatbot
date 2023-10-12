@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Optional, Union
 from langchain.chains import ConversationChain, LLMChain
 from langchain.prompts import PromptTemplate
 from langchain import hub
 from langchain.callbacks.tracers.langchain import wait_for_all_tracers
+from langchain.schema.output_parser import StrOutputParser
 
 from chatbot.common.config import BaseObject, Config
 from chatbot.prompt import *
@@ -94,8 +95,8 @@ class ChainManager(BaseObject):
     def memory(self):
         return self._memory
 
-    def reset_history(self, user_id: str = None):
-        self.memory.clear(user_id=user_id)
+    def reset_history(self, conversation_id: str = None):
+        self.memory.clear(conversation_id=conversation_id)
 
     def _init_chain(self, **kwargs):
         if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
@@ -104,7 +105,6 @@ class ChainManager(BaseObject):
             #     prompt=self._prompt,
             #     **kwargs
             # )
-            from langchain.schema.output_parser import StrOutputParser
             self.chain = (self._prompt | self._base_model | StrOutputParser()).with_config(
                 run_name="GenerateResponse",
             )
@@ -127,13 +127,12 @@ class ChainManager(BaseObject):
         }
         self._init_prompt_template(partial_variables)
         self.chain.prompt = self._prompt
-        # self._init_chain()
 
     async def _predict(self, message: Message, history):
         try:
             if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
                 output = self.chain.invoke({"input": message.message, "history": history})
-                output = Message(message=output.content, role=self.config.ai_prefix)
+                output = Message(message=output, role=self.config.ai_prefix)
             else:
                 output = self.chain.predict(input=message.message)
                 output = Message(message=output, role=self.config.ai_prefix)
@@ -142,59 +141,33 @@ class ChainManager(BaseObject):
             # Wait for invoke chain finish before push to Langsmith
             wait_for_all_tracers()
 
-    async def __call__(self, message: Message, user_id: str):
-        history = self.memory.load_history(user_id=user_id)
-        output: Message = await self._predict(message=message, history=history)
+    def chain_stream(self, input: str, conversation_id: str):
+        history = self.memory.load_history(conversation_id=conversation_id)
+        return self.chain.astream_log(
+            {"input": input, "history": history},
+            include_names=["FindDocs"]
+        )
+
+    def add_message_to_memory(
+            self,
+            human_message: Union[Message, str],
+            ai_message: Union[Message, str],
+            conversation_id: str
+    ):
+        if isinstance(human_message, str):
+            human_message = Message(message=human_message, role=self.config.human_prefix)
+        if isinstance(ai_message, str):
+            ai_message = Message(message=ai_message, role=self.config.ai_prefix)
+
         turn = MessageTurn(
-            human_message=message,
-            ai_message=output,
-            user_id=user_id
+            human_message=human_message,
+            ai_message=ai_message,
+            conversation_id=conversation_id
         )
         self.memory.add_message(turn)
-        return output
 
-    # def wrapper(self):
-    #     try:
-    #         loop = asyncio.get_event_loop()
-    #     except:
-    #         loop = asyncio.new_event_loop()
-    #         asyncio.set_event_loop(loop)
-    #
-    #     loop.run_until_complete(self.process())
-    #
-    # async def process_batch(self):
-    #     batch = []
-    #     start_waiting_time = time.perf_counter()
-    #     while True:
-    #         if self.input_queue.empty() and (time.perf_counter() - start_waiting_time <= self.config.waiting_time):
-    #             await asyncio.sleep(0.5)
-    #             continue
-    #
-    #         if time.perf_counter() - start_waiting_time <= self.config.waiting_time:
-    #             message: BaseMessage = self.input_queue.get_nowait()
-    #             batch.append(message)
-    #             start_waiting_time = time.perf_counter()
-    #             continue
-    #
-    #         start_waiting_time = time.perf_counter()
-    #         if batch:
-    #             _batch = copy.deepcopy(batch)
-    #             batch = []
-    #             loop = asyncio.get_event_loop()
-    #             await loop.run_in_executor(
-    #                 executor=self._predict_executor,
-    #                 func=lambda: self._predict(messages=_batch)
-    #             )
-    #
-    # async def process(self):
-    #     while True:
-    #         if self.input_queue.empty():
-    #             await asyncio.sleep(0.5)
-    #             continue
-    #
-    #         message: BaseMessage = self.input_queue.get_nowait()
-    #         loop = asyncio.get_event_loop()
-    #         await loop.run_in_executor(
-    #             executor=self._predict_executor,
-    #             func=lambda: self._predict(messages=[message])
-    #         )
+    async def __call__(self, message: Message, conversation_id: str):
+        history = self.memory.load_history(conversation_id=conversation_id)
+        output: Message = await self._predict(message=message, history=history)
+        self.add_message_to_memory(human_message=message, ai_message=output, conversation_id=conversation_id)
+        return output
