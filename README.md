@@ -7,13 +7,13 @@
 ## Description
 
 - This is a chatbot implementation with Langchain framework.
-    - Base LLM: Vertex AI
-    - Memory: MongoDB
-    - UI:
-        - Gradio
-        - Langchain UI: [Chat Langchain](https://github.com/langchain-ai/chat-langchain)
-            - Use it to leverages LangChain's streaming support.
-    - Prompt versioning and LLM tracing: LangSmith
+  - Base LLM: Vertex AI
+  - Memory: MongoDB
+  - UI:
+    - Gradio
+    - Langchain UI: [Chat Langchain](https://github.com/langchain-ai/chat-langchain)
+      - Use it to leverages LangChain's streaming support.
+  - Prompt versioning and LLM tracing: LangSmith
 - User can custom bot's personality by setting bot information like gender, age, ...
 - Demo UI:
   ![Demo UI](/assets/demo_ui.png)
@@ -36,15 +36,17 @@
 
 ### Development
 
-1. RUN backend
+0.  Download the models for the languages to use in anonymizer. PII support.
+    1. `python -m spacy download en_core_web_md`
+    2. `python -m spacy download vi_core_web_md`
+1.  RUN backend
     1. Clone repo: `git clone https://github.com/btrcm00/chatbot-with-langchain.git`
     2. Add google-cloud-platform credential file to `secure/vertexai.json`
     3. `cd chatbot`
     4. Install required packages: `pip install -r requirements.txt`
     5. Create MongoDB database and config environment variables to connect Mongo.
     6. Run: `python app.py`
-2. RUN frontend
+2.  RUN frontend
     1. `cd chatbot_frontend`
     2. Install packages: `npm i`
     3. Start frontend: `npm start dev`
-

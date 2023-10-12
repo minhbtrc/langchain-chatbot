@@ -4,8 +4,12 @@ from langchain.prompts import PromptTemplate
 from langchain import hub
 from langchain.callbacks.tracers.langchain import wait_for_all_tracers
 from langchain.schema.output_parser import StrOutputParser
+from langchain.schema import runnable
+from langchain_experimental.data_anonymizer import PresidioAnonymizer
+import langdetect
 
 from chatbot.common.config import BaseObject, Config
+from chatbot.common.constants import ANONYMIZED_FIELDS, NLP_CONFIG
 from chatbot.prompt import *
 from chatbot.common.objects import Message, MessageTurn
 from chatbot.utils import ChatbotCache
@@ -98,14 +102,21 @@ class ChainManager(BaseObject):
     def reset_history(self, conversation_id: str = None):
         self.memory.clear(conversation_id=conversation_id)
 
+    def anonymizer_chain(self):
+        
+        def detect_language(text: str) -> dict:
+            language = langdetect.detect(text)
+            return {"text": text, "language": language}
+        
+        anonymizer = PresidioAnonymizer(analyzed_fields=ANONYMIZED_FIELDS, languages_config=NLP_CONFIG)
+        return runnable.RunnableLambda(detect_language) | (
+            lambda x: anonymizer.anonymize(x["text"], language=x["language"])
+        )
+    
     def _init_chain(self, **kwargs):
         if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
-            # self.chain = LLMChain(
-            #     llm=self._base_model,
-            #     prompt=self._prompt,
-            #     **kwargs
-            # )
-            self.chain = (self._prompt | self._base_model | StrOutputParser()).with_config(
+            anonymizer_runnable = self.anonymizer_chain()
+            self.chain = (anonymizer_runnable | self._prompt | self._base_model | StrOutputParser()).with_config(
                 run_name="GenerateResponse",
             )
         else:

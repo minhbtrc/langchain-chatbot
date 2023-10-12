@@ -7,3 +7,9 @@ uvicorn
 pymongo==4.5.0
 gradio
 langchainhub==0.1.13
+langchain_experimental
+presidio-analyzer
+presidio_anonymizer
+langdetect
+Faker
+pyvi
