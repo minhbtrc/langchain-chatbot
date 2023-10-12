@@ -4,7 +4,7 @@ from langchain.prompts import PromptTemplate
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
-from chat_ui.base_ui import BaseGradioUI
+from gradio_ui.base_ui import BaseGradioUI
 from chatbot import MemoryTypes
 from chatbot.models import ModelTypes
 from chatbot.common.config import Config

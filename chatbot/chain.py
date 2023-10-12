@@ -2,6 +2,7 @@ from typing import Optional
 from langchain.chains import ConversationChain, LLMChain
 from langchain.prompts import PromptTemplate
 from langchain import hub
+from langchain.callbacks.tracers.langchain import wait_for_all_tracers
 
 from chatbot.common.config import BaseObject, Config
 from chatbot.prompt import *
@@ -98,10 +99,14 @@ class ChainManager(BaseObject):
 
     def _init_chain(self, **kwargs):
         if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
-            self.chain = LLMChain(
-                llm=self._base_model,
-                prompt=self._prompt,
-                **kwargs
+            # self.chain = LLMChain(
+            #     llm=self._base_model,
+            #     prompt=self._prompt,
+            #     **kwargs
+            # )
+            from langchain.schema.output_parser import StrOutputParser
+            self.chain = (self._prompt | self._base_model | StrOutputParser()).with_config(
+                run_name="GenerateResponse",
             )
         else:
             self.chain = ConversationChain(
@@ -125,13 +130,17 @@ class ChainManager(BaseObject):
         # self._init_chain()
 
     async def _predict(self, message: Message, history):
-        if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
-            output = self.chain({"input": message.message, "history": history})
-            output = Message(message=output["text"], role=self.config.ai_prefix)
-        else:
-            output = self.chain.predict(input=message.message)
-            output = Message(message=output, role=self.config.ai_prefix)
-        return output
+        try:
+            if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
+                output = self.chain.invoke({"input": message.message, "history": history})
+                output = Message(message=output.content, role=self.config.ai_prefix)
+            else:
+                output = self.chain.predict(input=message.message)
+                output = Message(message=output, role=self.config.ai_prefix)
+            return output
+        finally:
+            # Wait for invoke chain finish before push to Langsmith
+            wait_for_all_tracers()
 
     async def __call__(self, message: Message, user_id: str):
         history = self.memory.load_history(user_id=user_id)
