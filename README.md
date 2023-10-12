@@ -1,4 +1,4 @@
-# Personality chatbot with Langchain + Vertex AI.
+# Personality chatbot with Langchain + LangSmith.
 
 ## Requirement
 
@@ -13,7 +13,7 @@
         - Gradio
         - Langchain UI: [Chat Langchain](https://github.com/langchain-ai/chat-langchain)
             - Use it to leverages LangChain's streaming support.
-    - Prompt versioning: LangSmith
+    - Prompt versioning and LLM tracing: LangSmith
 - User can custom bot's personality by setting bot information like gender, age, ...
 - Demo UI:
   ![Demo UI](/assets/demo_ui.png)
