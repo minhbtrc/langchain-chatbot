@@ -15,32 +15,32 @@ class BaseGradioUI:
             bot_model: Optional[ModelTypes] = None
     ):
         self.bot = bot if bot is not None else Bot(memory=bot_memory, model=bot_model)
-        self._user_id = None
+        self._conversation_id = None
 
     @staticmethod
-    def create_user_id():
+    def create_conversation_id():
         return str(random.randint(100000000, 999999999))
 
-    def user_state(self, message: str, chat_history: Any, user_id):
+    def user_state(self, message: str, chat_history: Any, conversation_id):
         """Initiate user state and chat history
 
         Args:
             message (str): user message
             chat_history (Any): chat history
         """
-        if not user_id:
-            user_id = self.create_user_id()
-        return "", chat_history + [[message, None]], user_id
+        if not conversation_id:
+            conversation_id = self.create_conversation_id()
+        return "", chat_history + [[message, None]], conversation_id
 
-    def respond(self, user_id, chat_history):
+    def respond(self, conversation_id, chat_history):
         message = chat_history[-1][0]
-        result = self.bot.predict(sentence=message, user_id=user_id)
+        result = self.bot.predict(sentence=message, conversation_id=conversation_id)
         chat_history[-1][-1] = result.message
         return chat_history
 
     def start_demo(self, port=8000, debug=False, share=True):
         with gr.Blocks() as demo:
-            user_id_state = gr.State("")
+            conversation_id_state = gr.State("")
             gr.Markdown("""<h1><center> LLM Assistant </center></h1>""")
             chatbot = gr.Chatbot(label="Assistant").style(height=700)
 
@@ -53,18 +53,18 @@ class BaseGradioUI:
                                          value="Refresh the conversation history")
 
             def clear_user_state():
-                return {user_id_state: ""}
+                return {conversation_id_state: ""}
 
             message.submit(
                 self.user_state,
-                inputs=[message, chatbot, user_id_state],
-                outputs=[message, chatbot, user_id_state],
+                inputs=[message, chatbot, conversation_id_state],
+                outputs=[message, chatbot, conversation_id_state],
                 queue=False
             ).then(
                 self.respond,
-                inputs=[user_id_state, chatbot],
+                inputs=[conversation_id_state, chatbot],
                 outputs=[chatbot]
             )
-            btn_refresh.click(clear_user_state, outputs=user_id_state)
+            btn_refresh.click(clear_user_state, outputs=conversation_id_state)
         demo.queue()
         demo.launch(debug=debug, server_port=port, share=share)

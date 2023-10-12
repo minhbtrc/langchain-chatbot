@@ -53,19 +53,19 @@ class BaseChatbotMemory(BaseObject):
     def user_memory(self):
         return self._user_memory
 
-    def clear(self, user_id: str):
-        if user_id in self.user_memory:
-            memory = self.user_memory.pop(user_id)
+    def clear(self, conversation_id: str):
+        if conversation_id in self.user_memory:
+            memory = self.user_memory.pop(conversation_id)
             memory.clear()
 
-    def load_history(self, user_id: str) -> str:
-        if user_id not in self._user_memory:
+    def load_history(self, conversation_id: str) -> str:
+        if conversation_id not in self._user_memory:
             memory = self._base_memory_class(**self.chat_history_kwargs)
             self.memory.chat_memory = memory
-            self.user_memory[user_id] = memory
+            self.user_memory[conversation_id] = memory
             return ""
 
-        self.memory.chat_memory = self.user_memory.get(user_id)
+        self.memory.chat_memory = self.user_memory.get(conversation_id)
         return self._memory.load_memory_variables({})["history"]
 
     def add_message(self, message_turn: MessageTurn):

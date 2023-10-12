@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Optional, List, Dict
 
 
 class Message(BaseModel):
@@ -9,7 +10,13 @@ class Message(BaseModel):
 class MessageTurn(BaseModel):
     human_message: Message = Field(description="Message of human")
     ai_message: Message = Field(description="Message of AI")
-    user_id: str = Field(description="The id of user in this turn")
+    conversation_id: str = Field(description="The id of user in this turn")
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: Optional[List[Dict[str, str]]]
+    conversation_id: Optional[str]
 
 
 def messages_from_dict(message: dict) -> str:

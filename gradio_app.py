@@ -1,4 +1,4 @@
-from chat_ui.base_ui import BaseGradioUI
+from gradio_ui.base_ui import BaseGradioUI
 from chatbot import MemoryTypes, ModelTypes
 
 if __name__ == "__main__":
