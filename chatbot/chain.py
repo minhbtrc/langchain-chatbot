@@ -1,5 +1,5 @@
 from typing import Optional, Union
-from langchain.chains import ConversationChain, LLMChain
+from langchain.chains import ConversationChain
 from langchain.prompts import PromptTemplate
 from langchain import hub
 from langchain.callbacks.tracers.langchain import wait_for_all_tracers
@@ -8,7 +8,7 @@ from langchain.schema.output_parser import StrOutputParser
 from chatbot.common.config import BaseObject, Config
 from chatbot.prompt import *
 from chatbot.common.objects import Message, MessageTurn
-from chatbot.utils import ChatbotCache
+from chatbot.utils import ChatbotCache, BotAnonymizer
 from chatbot.memory import MemoryTypes, MEM_TO_CLASS
 from chatbot.models import ModelTypes, MODEL_TO_CLASS
 
@@ -39,8 +39,9 @@ class ChainManager(BaseObject):
             }
             self._init_prompt_template(partial_variables=partial_variables)
         chain_kwargs = chain_kwargs or {}
-        self._init_chain(**chain_kwargs)
         self._cache = ChatbotCache.create(config=self.config)
+        self.anonymizer = BotAnonymizer(config=self.config)
+        self._init_chain(**chain_kwargs)
 
     def get_memory(
             self,
@@ -100,14 +101,13 @@ class ChainManager(BaseObject):
 
     def _init_chain(self, **kwargs):
         if isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
-            # self.chain = LLMChain(
-            #     llm=self._base_model,
-            #     prompt=self._prompt,
-            #     **kwargs
-            # )
-            self.chain = (self._prompt | self._base_model | StrOutputParser()).with_config(
-                run_name="GenerateResponse",
-            )
+            anonymizer_runnable = self.anonymizer.get_runnable_anonymizer()
+
+            self.chain = (anonymizer_runnable
+                          | self._prompt
+                          | self._base_model
+                          | StrOutputParser()
+                          | self.anonymizer.anonymizer.deanonymize).with_config(run_name="GenerateResponse")
         else:
             self.chain = ConversationChain(
                 llm=self._base_model,
