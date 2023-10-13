@@ -7,3 +7,10 @@ uvicorn
 pymongo==4.5.0
 gradio
 langchainhub==0.1.13
+langchain_experimental
+presidio-analyzer
+presidio_anonymizer
+langdetect
+Faker
+pyvi
+https://gitlab.com/trungtv/vi_spacy/-/raw/master/packages/vi_core_news_lg-3.6.0/dist/vi_core_news_lg-3.6.0.tar.gz

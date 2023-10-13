@@ -1,4 +1,4 @@
-# Personality chatbot with Langchain + Vertex AI.
+# Personality chatbot with Langchain + LangSmith.
 
 ## Requirement
 
@@ -18,6 +18,24 @@
 - Demo UI:
   ![Demo UI](/assets/demo_ui.png)
 
+### PII for chatbot
+
+- [Data anonymization with Microsoft Presidio](https://python.langchain.com/docs/guides/privacy/presidio_data_anonymization/)
+- To protect personally identifiable information (PII), we add `PresidioAnonymizer` to my bot to replace PIIs before
+  pass to LLM api. View code in [Anonymizer](/chatbot/utils/anonymizer.py)
+- Steps when using it:
+    - User message after anonymize:
+
+      ![anonymized message](/assets/anonymized_output.png)
+
+    - Anonymized prompt before input to LLM:
+
+      ![anonymized_prompt](/assets/anonymized_prompt.png)
+
+    - De-anonymized response to user after LLM call:
+  
+      ![de-anonymized_output.png](/assets/de-anonymized-output.png)
+
 ## How to use
 
 - You need Google Cloud credentials to call Vertex API
@@ -34,8 +52,10 @@
   export LANGCHAIN_PROJECT="chatbot-with-langchain"
   ```
 
-### Development
+### Running
 
+0. Download the models for the languages to use in anonymizer. PII support.
+    1. `python -m spacy download en_core_web_md`
 1. RUN backend
     1. Clone repo: `git clone https://github.com/btrcm00/chatbot-with-langchain.git`
     2. Add google-cloud-platform credential file to `secure/vertexai.json`
