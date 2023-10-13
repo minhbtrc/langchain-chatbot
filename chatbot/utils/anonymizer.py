@@ -25,13 +25,19 @@ class BotAnonymizer(BaseObject):
         if language not in self.supported_lang:
             self.logger.warning(
                 f"Detected language is not supported in this Chatbot, it only support {self.supported_lang}, but detected {language}")
+            language = None
         return {"language": language, **input_dict}
 
     def anonymize_func(self, input_dict: dict):
+        if input_dict["language"] is None:
+            return {
+                "input": input_dict["input"],
+                "history": input_dict["history"]
+            }
         return {
             "input": self.anonymizer.anonymize(input_dict["input"], input_dict["language"]),
             "history": self.anonymizer.anonymize(input_dict["history"], input_dict["language"])
         }
 
     def get_runnable_anonymizer(self):
-        return runnable.RunnableLambda(self._detect_lang) | self.anonymize_func
+        return runnable.RunnableLambda(self._detect_lang) | runnable.RunnableLambda(self.anonymize_func)
