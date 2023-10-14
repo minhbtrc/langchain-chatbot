@@ -74,11 +74,12 @@ class Bot(BaseObject):
 
     def set_personality(
             self,
-            bot_personalities: str = BOT_PERSONALITY
+            bot_personalities: str = BOT_PERSONALITY,
+            user_personality: str = ""
     ):
         self.chain.set_personality_prompt(
             personality_prompt=bot_personalities,
-            user_personality=""
+            user_personality=user_personality
         )
 
     def reset_history(self, conversation_id: str = None):

@@ -4,7 +4,7 @@ from langchain.prompts import PromptTemplate
 from langchain import hub
 from langchain.callbacks.tracers.langchain import wait_for_all_tracers
 from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnableLambda
+from langchain.schema.runnable import RunnableLambda, RunnableMap
 
 from chatbot.common.config import BaseObject, Config
 from chatbot.prompt import *
@@ -101,16 +101,23 @@ class ChainManager(BaseObject):
         self.memory.clear(conversation_id=conversation_id)
 
     def _init_chain(self, **kwargs):
-        anonymizer_runnable = self.anonymizer.get_runnable_anonymizer()
-        self.chain = ({
-                          "input": itemgetter("input"),
-                          "history": itemgetter("conversation_id") | RunnableLambda(self.memory.load_history)
-                      }
+        anonymizer_runnable = self.anonymizer.get_runnable_anonymizer().with_config(run_name="AnonymizeSentence")
+
+        history_loader = RunnableMap({
+            "input": itemgetter("input"),
+            "history": itemgetter("conversation_id") | RunnableLambda(self.memory.load_history)
+        }).with_config(run_name="LoadHistory")
+
+        response_generator = (self._prompt | self._base_model | StrOutputParser()).with_config(
+            run_name="GenerateResponse")
+
+        de_anonymizer = RunnableLambda(self.anonymizer.anonymizer.deanonymize).with_config(
+            run_name="DeAnonymizeResponse")
+
+        self.chain = (history_loader
                       | anonymizer_runnable
-                      | self._prompt
-                      | self._base_model
-                      | StrOutputParser()
-                      | self.anonymizer.anonymizer.deanonymize).with_config(run_name="GenerateResponse")
+                      | response_generator
+                      | de_anonymizer)
 
         if not isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
             self.chain = self.chain | self.memory.memory
@@ -137,10 +144,9 @@ class ChainManager(BaseObject):
             wait_for_all_tracers()
 
     def chain_stream(self, input: str, conversation_id: str):
-        # history = self.memory.load_history(conversation_id=conversation_id)
         return self.chain.astream_log(
             {"input": input, "conversation_id": conversation_id},
-            include_names=["FindDocs"]
+            include_names=["StreamResponse"]
         )
 
     def add_message_to_memory(
@@ -162,7 +168,6 @@ class ChainManager(BaseObject):
         self.memory.add_message(turn)
 
     async def __call__(self, message: Message, conversation_id: str):
-        # history = self.memory.load_history(conversation_id=conversation_id)
         output: Message = await self._predict(message=message, conversation_id=conversation_id)
         self.add_message_to_memory(human_message=message, ai_message=output, conversation_id=conversation_id)
         return output

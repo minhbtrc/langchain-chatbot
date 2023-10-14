@@ -87,7 +87,7 @@ export function ChatWindow(props: {
     };
     marked.setOptions({ renderer });
     try {
-      const sourceStepName = "FindDocs";
+      const sourceStepName = "StreamResponse";
       await fetchEventSource(apiBaseUrl + "/chat", {
         method: "POST",
         headers: {
