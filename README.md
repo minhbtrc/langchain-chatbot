@@ -7,7 +7,7 @@
 ## Description
 
 - This is a chatbot implementation with Langchain framework.
-    - Base LLM: Use can use Vertex AI or OpenAI API
+    - Base LLM: You can use Vertex AI or OpenAI API
     - Memory: MongoDB
     - UI:
         - Gradio
