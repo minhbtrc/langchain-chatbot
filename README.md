@@ -7,7 +7,7 @@
 ## Description
 
 - This is a chatbot implementation with Langchain framework.
-    - Base LLM: Vertex AI
+    - Base LLM: Use can use Vertex AI or OpenAI API
     - Memory: MongoDB
     - UI:
         - Gradio
@@ -38,7 +38,7 @@
 
 ## How to use
 
-- You need Google Cloud credentials to call Vertex API
+- You need Google Cloud credentials to call Vertex API or OPENAI API KEY to call OpenAI API
 - You need create mongoDB database and collection to use as Langchain memory
 
 ### Setup tracing with Langsmith
