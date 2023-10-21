@@ -83,7 +83,7 @@ class ChainManager(BaseObject):
             model_class = MODEL_TO_CLASS[model_type]
         else:
             raise ValueError(
-                "Somehow both `memory` is None, "
+                "Somehow both `model_type` is None, "
                 "this should never happen."
             )
 
@@ -101,8 +101,6 @@ class ChainManager(BaseObject):
         self.memory.clear(conversation_id=conversation_id)
 
     def _init_chain(self, **kwargs):
-        anonymizer_runnable = self.anonymizer.get_runnable_anonymizer().with_config(run_name="AnonymizeSentence")
-
         history_loader = RunnableMap({
             "input": itemgetter("input"),
             "history": itemgetter("conversation_id") | RunnableLambda(self.memory.load_history)
@@ -111,13 +109,17 @@ class ChainManager(BaseObject):
         response_generator = (self._prompt | self._base_model | StrOutputParser()).with_config(
             run_name="GenerateResponse")
 
-        de_anonymizer = RunnableLambda(self.anonymizer.anonymizer.deanonymize).with_config(
-            run_name="DeAnonymizeResponse")
+        if self.config.enable_anonymizer:
+            anonymizer_runnable = self.anonymizer.get_runnable_anonymizer().with_config(run_name="AnonymizeSentence")
+            de_anonymizer = RunnableLambda(self.anonymizer.anonymizer.deanonymize).with_config(
+                run_name="DeAnonymizeResponse")
 
-        self.chain = (history_loader
-                      | anonymizer_runnable
-                      | response_generator
-                      | de_anonymizer)
+            self.chain = (history_loader
+                        | anonymizer_runnable
+                        | response_generator
+                        | de_anonymizer)
+        else:
+            self.chain = history_loader | response_generator
 
         if not isinstance(self._memory, MEM_TO_CLASS[MemoryTypes.CUSTOM_MEMORY]):
             self.chain = self.chain | self.memory.memory

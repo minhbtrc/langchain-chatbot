@@ -1,4 +1,4 @@
-langchain==0.0.312
+langchain==0.0.319
 google-cloud-aiplatform
 pydantic==1.10.12
 asyncio
@@ -15,3 +15,5 @@ Faker
 pyvi
 https://gitlab.com/trungtv/vi_spacy/-/raw/master/packages/vi_core_news_lg-3.6.0/dist/vi_core_news_lg-3.6.0.tar.gz
 spacy
+langserve
+sse_starlette

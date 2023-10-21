@@ -77,6 +77,7 @@ class Config(BaseObject):
         self.ai_prefix = os.getenv(AI_PREFIX, "AI")
         self.human_prefix = os.getenv(HUMAN_PREFIX, "Human")
         self.memory_key = os.getenv(MEMORY_KEY, "history")
+        self.enable_anonymizer = False
 
     def init_env(self):
         credential_data = json.load(open(self.credentials, "r"))
