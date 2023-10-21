@@ -14,8 +14,7 @@ class MessageTurn(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
-    history: Optional[List[Dict[str, str]]]
+    input: str
     conversation_id: Optional[str]
 
 

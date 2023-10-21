@@ -59,7 +59,6 @@ export function ChatWindow(props: {
     ]);
     setIsLoading(true);
 
-    let streamedResponse: Record<string, any> = {};
     let accumulatedMessage = "";
     let runId: string | undefined = undefined;
     let sources: Source[] | undefined = undefined;
@@ -87,26 +86,26 @@ export function ChatWindow(props: {
     };
     marked.setOptions({ renderer });
     try {
-      const sourceStepName = "StreamResponse";
-      await fetchEventSource(apiBaseUrl + "/chat", {
+      const sourceStepName = "GenerateResponse";
+      let streamedResponse: Record<string, any> = {};
+      await fetchEventSource(apiBaseUrl + "/chat/stream_log", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "text/event-stream",
         },
         body: JSON.stringify({
-          message: messageValue,
-          history: chatHistory,
-          conversation_id: conversationId,
+          input: {
+            input: messageValue,
+            conversation_id: conversationId,
+          }
         }),
+        openWhenHidden: true,
         onerror(err) {
           throw err;
         },
         onmessage(msg) {
           if (msg.event === "end") {
-            setChatHistory((prevChatHistory) => [
-              ...prevChatHistory,
-              { human: messageValue, ai: accumulatedMessage },
-            ]);
             setIsLoading(false);
             return;
           }
@@ -116,18 +115,18 @@ export function ChatWindow(props: {
               streamedResponse,
               chunk.ops,
             ).newDocument;
-            if (
-              Array.isArray(
-                streamedResponse?.logs?.[sourceStepName]?.final_output?.output,
-              )
-            ) {
-              sources = streamedResponse.logs[
-                sourceStepName
-              ].final_output.output.map((doc: Record<string, any>) => ({
-                url: doc.metadata.source,
-                title: doc.metadata.title,
-              }));
-            }
+            // if (
+            //   Array.isArray(
+            //     streamedResponse?.logs?.[sourceStepName]?.final_output?.output,
+            //   )
+            // ) {
+            //   sources = streamedResponse.logs[
+            //     sourceStepName
+            //   ].final_output.output.map((doc: Record<string, any>) => ({
+            //     url: doc.metadata.source,
+            //     title: doc.metadata.title,
+            //   }));
+            // }
             if (streamedResponse.id !== undefined) {
               runId = streamedResponse.id;
             }
@@ -138,19 +137,20 @@ export function ChatWindow(props: {
 
             setMessages((prevMessages) => {
               let newMessages = [...prevMessages];
-              if (messageIndex === null || newMessages[messageIndex] === undefined) {
+              if (
+                messageIndex === null ||
+                newMessages[messageIndex] === undefined
+              ) {
                 messageIndex = newMessages.length;
                 newMessages.push({
                   id: Math.random().toString(),
                   content: parsedResult.trim(),
                   runId: runId,
-                  sources: sources,
                   role: "assistant",
                 });
               } else if (newMessages[messageIndex] !== undefined) {
                 newMessages[messageIndex].content = parsedResult.trim();
                 newMessages[messageIndex].runId = runId;
-                newMessages[messageIndex].sources = sources;
               }
               return newMessages;
             });
