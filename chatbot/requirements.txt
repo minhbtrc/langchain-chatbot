@@ -17,3 +17,4 @@ https://gitlab.com/trungtv/vi_spacy/-/raw/master/packages/vi_core_news_lg-3.6.0/
 spacy
 langserve
 sse_starlette
+google-search-results
