@@ -23,7 +23,7 @@ class ChainManager(BaseObject):
         self._base_model = self.get_model(model_type=model, parameters=model_kwargs)
         self._init_prompt_template(template_path=prompt_template, partial_variables=partial_variables)
         self._cache = ChatbotCache.create(config=self.config)
-        self._init_chain(model_kwargs=model_kwargs)
+        self._init_chain()
 
     def get_model(
             self,
@@ -53,11 +53,10 @@ class ChainManager(BaseObject):
             return model_class(model_name=model_name, **parameters)
         return model_class(**parameters, return_messages=True)
 
-    def _init_chain(self, model_kwargs:dict):
-        self.chain = (self._prompt | self._base_model.bind(**model_kwargs)).with_config(run_name="GenerateResponse")
+    def _init_chain(self):
+        self.chain = (self._prompt | self._base_model).with_config(run_name="GenerateResponse")
 
     def _init_prompt_template(self, template_path: str = None, partial_variables=None):
-        template_path = template_path or "minhi/personality-chatbot-prompt"
         prompt: PromptTemplate = hub.pull(template_path)
         self._prompt = prompt.partial(**partial_variables)
 

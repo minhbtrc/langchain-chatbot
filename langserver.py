@@ -1,10 +1,5 @@
-import json
-from typing import AsyncIterator
 from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from langchain.callbacks.tracers.log_stream import RunLogPatch
 from langserve import add_routes
 
 from chatbot import Bot
@@ -22,7 +17,14 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-add_routes(app, bot.chain.chain, path="/chat", input_type=ChatRequest)
+from operator import itemgetter
+from langchain.schema.runnable import RunnableLambda
+
+add_routes(app,
+           {"sentence": itemgetter("input"),
+            "conversation_id": itemgetter("conversation_id")} | RunnableLambda(bot.call),
+           path="/chat",
+           input_type=ChatRequest)
 
 if __name__ == "__main__":
     import uvicorn
