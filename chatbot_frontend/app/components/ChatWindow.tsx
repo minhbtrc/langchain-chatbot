@@ -86,7 +86,7 @@ export function ChatWindow(props: {
     };
     marked.setOptions({ renderer });
     try {
-      const sourceStepName = "GenerateResponse";
+//       const sourceStepName = "GenerateResponse";
       let streamedResponse: Record<string, any> = {};
       await fetchEventSource(apiBaseUrl + "/chat/stream_log", {
         method: "POST",

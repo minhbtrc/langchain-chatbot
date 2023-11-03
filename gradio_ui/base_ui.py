@@ -4,7 +4,7 @@ import random
 import gradio as gr
 
 from chatbot.bot import Bot
-from chatbot import MemoryTypes, ModelTypes
+from chatbot import MemoryTypes, ModelTypes,CacheTypes
 
 
 class BaseGradioUI:
@@ -12,9 +12,10 @@ class BaseGradioUI:
             self,
             bot: Bot = None,
             bot_memory: Optional[MemoryTypes] = None,
-            bot_model: Optional[ModelTypes] = None
+            bot_model: Optional[ModelTypes] = None,
+            bot_cache: Optional[CacheTypes] = None
     ):
-        self.bot = bot if bot is not None else Bot(memory=bot_memory, model=bot_model)
+        self.bot = bot if bot is not None else Bot(memory=bot_memory, model=bot_model, cache=bot_cache)
         self._conversation_id = None
 
     @staticmethod

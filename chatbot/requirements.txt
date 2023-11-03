@@ -1,4 +1,4 @@
-langchain==0.0.319
+langchain==0.0.329
 google-cloud-aiplatform
 pydantic==1.10.12
 asyncio
@@ -18,3 +18,5 @@ spacy
 langserve
 sse_starlette
 google-search-results
+openai
+gptcache

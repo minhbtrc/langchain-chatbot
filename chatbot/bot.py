@@ -7,16 +7,17 @@ from langchain.agents import AgentExecutor
 from langchain.agents.format_scratchpad import format_log_to_str
 from langchain.agents.output_parsers import ReActSingleInputOutputParser
 from langchain.callbacks.tracers.langchain import wait_for_all_tracers
-from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnableLambda, RunnableMap
+from langchain.callbacks.streaming_stdout_final_only import FinalStreamingStdOutCallbackHandler
 
 from chatbot.memory import MemoryTypes, MEM_TO_CLASS
 from chatbot.models import ModelTypes
 from chatbot.common.config import Config, BaseObject
+from chatbot.common.objects import Message, MessageTurn
+from chatbot.common.constants import *
 from chatbot.chain import ChainManager
 from chatbot.prompt import BOT_PERSONALITY
-from chatbot.common.objects import Message, MessageTurn
-from chatbot.utils import BotAnonymizer
+from chatbot.utils import BotAnonymizer, CacheTypes, ChatbotCache
 from chatbot.tools import CustomSearchTool
 
 
@@ -24,29 +25,15 @@ class Bot(BaseObject):
     def __init__(
             self,
             config: Config = None,
-            prompt_template: PromptTemplate = None,
+            prompt_template: str = PERSONAL_CHAT_PROMPT_REACT,
             memory: Optional[MemoryTypes] = None,
+            cache: Optional[CacheTypes] = None,
             model: Optional[ModelTypes] = None,
             memory_kwargs: Optional[dict] = None,
             model_kwargs: Optional[dict] = None,
             bot_personality: str = BOT_PERSONALITY,
             tools: List[str] = None
     ):
-        """
-        Conversation chatbot
-        :param config: System configuration
-        :type config: Config
-        :param prompt_template: Prompt template
-        :type prompt_template: PromptTemplate
-        :param memory: Conversation memory type
-        :type memory: MemoryTypes
-        :param model: Model type
-        :type model: ModelTypes
-        :param memory_kwargs: Keyword arguments for Memory. Default with ConversationWindowBuffer arguments
-        :type memory_kwargs: Dict
-        :param model_kwargs: Keyword arguments for Model. Default with VertexAI arguments
-        :type model_kwargs: Dict
-        """
         super().__init__()
         self.config = config if config is not None else Config()
         self.tools = tools or [CustomSearchTool()]
@@ -58,13 +45,16 @@ class Bot(BaseObject):
         }
         self.chain = ChainManager(
             config=self.config,
-            prompt_template="minhi/personality-chat-react-prompt",
+            prompt_template=prompt_template,
             model=model,
-            model_kwargs=model_kwargs if model_kwargs else self.default_model_kwargs,
+            model_kwargs=model_kwargs if model_kwargs else self.get_model_kwargs(model=model),
             partial_variables=partial_variables
         )
         self.input_queue = Queue(maxsize=6)
         self._memory = self.get_memory(memory_type=memory, parameters=memory_kwargs)
+        if cache == CacheTypes.GPTCache and model != ModelTypes.OPENAI:
+            cache = None
+        self._cache = ChatbotCache.create(cache_type=cache)
         self.anonymizer = BotAnonymizer(config=self.config)
         self.brain = None
         self.start()
@@ -93,7 +83,13 @@ class Bot(BaseObject):
 
         else:
             agent = history_loader | self.chain.chain | ReActSingleInputOutputParser()
-        self.brain = AgentExecutor(agent=agent, tools=self.tools, verbose=True, max_iterations=2)
+        self.brain = AgentExecutor(
+            agent=agent,
+            tools=self.tools,
+            verbose=True,
+            max_iterations=2,
+            return_intermediate_steps=False
+        )
 
     def get_memory(
             self,
@@ -117,15 +113,35 @@ class Bot(BaseObject):
             )
         return memory_class(config=self.config, **parameters)
 
+    def get_model_kwargs(self, model: Optional[ModelTypes]):
+        if model and model == ModelTypes.OPENAI:
+            return self.openai_model_kwargs
+        else:
+            return self.default_model_kwargs
+
     @property
     def default_model_kwargs(self):
         return {
             "max_output_tokens": 512,
             "temperature": 0.2,
             "top_p": 0.8,
-            "top_k": 40,
-            # "streaming": True,
-            "stop": ["\nObservation"]
+            "top_k": 40
+        }
+
+    @property
+    def openai_model_kwargs(self):
+        return {
+            "temperature": 0.2,
+            "model_name": "gpt-3.5-turbo"
+        }
+
+    @property
+    def streaming_model_kwargs(self):
+        return {
+            **self.default_model_kwargs,
+            "streaming": True,
+            "stop": ["\nObservation"],
+            "callbacks": [FinalStreamingStdOutCallbackHandler()]  # Use only with agent
         }
 
     def reset_history(self, conversation_id: str = None):
@@ -172,3 +188,6 @@ class Bot(BaseObject):
         output = asyncio.run(self(message, conversation_id=conversation_id))
         self.add_message_to_memory(human_message=message, ai_message=output, conversation_id=conversation_id)
         return output
+
+    def call(self, input: dict):
+        return self.predict(**input)
