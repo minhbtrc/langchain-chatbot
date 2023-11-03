@@ -20,11 +20,15 @@ app.add_middleware(
 from operator import itemgetter
 from langchain.schema.runnable import RunnableLambda
 
-add_routes(app,
-           {"sentence": itemgetter("input"),
-            "conversation_id": itemgetter("conversation_id")} | RunnableLambda(bot.call),
-           path="/chat",
-           input_type=ChatRequest)
+add_routes(
+    app,
+    {
+        "sentence": itemgetter("input"),
+        "conversation_id": itemgetter("conversation_id")
+    } | RunnableLambda(bot.call),
+    path="/chat",
+    input_type=ChatRequest
+)
 
 if __name__ == "__main__":
     import uvicorn

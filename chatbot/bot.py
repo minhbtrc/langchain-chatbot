@@ -10,7 +10,6 @@ from langchain.callbacks.tracers.langchain import wait_for_all_tracers
 from langchain.schema.runnable import RunnableLambda, RunnableMap
 from langchain.callbacks.streaming_stdout_final_only import FinalStreamingStdOutCallbackHandler
 
-
 from chatbot.memory import MemoryTypes, MEM_TO_CLASS
 from chatbot.models import ModelTypes
 from chatbot.common.config import Config, BaseObject
@@ -18,7 +17,7 @@ from chatbot.common.objects import Message, MessageTurn
 from chatbot.common.constants import *
 from chatbot.chain import ChainManager
 from chatbot.prompt import BOT_PERSONALITY
-from chatbot.utils import BotAnonymizer
+from chatbot.utils import BotAnonymizer, CacheTypes, ChatbotCache
 from chatbot.tools import CustomSearchTool
 
 
@@ -28,6 +27,7 @@ class Bot(BaseObject):
             config: Config = None,
             prompt_template: str = PERSONAL_CHAT_PROMPT_REACT,
             memory: Optional[MemoryTypes] = None,
+            cache: Optional[CacheTypes] = None,
             model: Optional[ModelTypes] = None,
             memory_kwargs: Optional[dict] = None,
             model_kwargs: Optional[dict] = None,
@@ -47,11 +47,14 @@ class Bot(BaseObject):
             config=self.config,
             prompt_template=prompt_template,
             model=model,
-            model_kwargs=model_kwargs if model_kwargs else self.streaming_model_kwargs,
+            model_kwargs=model_kwargs if model_kwargs else self.get_model_kwargs(model=model),
             partial_variables=partial_variables
         )
         self.input_queue = Queue(maxsize=6)
         self._memory = self.get_memory(memory_type=memory, parameters=memory_kwargs)
+        if cache == CacheTypes.GPTCache and model != ModelTypes.OPENAI:
+            cache = None
+        self._cache = ChatbotCache.create(cache_type=cache)
         self.anonymizer = BotAnonymizer(config=self.config)
         self.brain = None
         self.start()
@@ -110,6 +113,12 @@ class Bot(BaseObject):
             )
         return memory_class(config=self.config, **parameters)
 
+    def get_model_kwargs(self, model: Optional[ModelTypes]):
+        if model and model == ModelTypes.OPENAI:
+            return self.openai_model_kwargs
+        else:
+            return self.default_model_kwargs
+
     @property
     def default_model_kwargs(self):
         return {
@@ -117,6 +126,13 @@ class Bot(BaseObject):
             "temperature": 0.2,
             "top_p": 0.8,
             "top_k": 40
+        }
+
+    @property
+    def openai_model_kwargs(self):
+        return {
+            "temperature": 0.2,
+            "model_name": "gpt-3.5-turbo"
         }
 
     @property
