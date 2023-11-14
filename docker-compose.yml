@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+
+  backend:
+    build: ./chatbot_backend
+    restart: always
+    env_file:
+      - ./chatbot_backend/.env
+    # environment:
+    #   - CREDENTIALS_FILE=${CREDENTIALS_FILE}
+    #   - MONGO_CLUSTER=${MONGO_CLUSTER}
+    #   - MONGO_PASSWORD=${MONGO_PASSWORD}
+    #   - MONGO_USERNAME=${MONGO_USERNAME}
+    #   - SERPAPI_API_KEY=${SERPAPI_API_KEY}
+    #   - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2}
+    #   - LANGCHAIN_ENDPOINT=${LANGCHAIN_ENDPOINT}
+    #   - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
+    #   - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT}
+    ports:
+      - 8080:8080
+    networks:
+      - Chatbot
+
+  frontend:
+    build: ./chatbot_frontend
+    depends_on:
+      - backend
+    volumes:
+      - /app/chatbot_frontend/node_modules
+    networks:
+      - Chatbot
+
+networks:
+  Chatbot:
+    external: true

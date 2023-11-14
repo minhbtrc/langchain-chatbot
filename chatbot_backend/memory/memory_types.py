@@ -1,5 +1,5 @@
 from enum import Enum
-from chatbot.memory import MongoChatbotMemory, BaseChatbotMemory, CustomMongoChatbotMemory
+from memory import MongoChatbotMemory, BaseChatbotMemory, CustomMongoChatbotMemory
 
 
 class MemoryTypes(str, Enum):

@@ -3,10 +3,10 @@ from langchain.prompts import PromptTemplate
 from langchain import hub
 from langchain.callbacks.tracers.langchain import wait_for_all_tracers
 
-from chatbot.common.config import BaseObject, Config
-from chatbot.common.objects import Message
-from chatbot.utils import ChatbotCache
-from chatbot.models import ModelTypes, MODEL_TO_CLASS
+from common.config import BaseObject, Config
+from common.objects import Message
+from utils import ChatbotCache
+from models import ModelTypes, MODEL_TO_CLASS
 
 
 class ChainManager(BaseObject):

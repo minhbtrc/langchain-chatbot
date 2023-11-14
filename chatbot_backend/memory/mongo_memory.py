@@ -1,8 +1,8 @@
 import logging
 from langchain.memory import MongoDBChatMessageHistory
 
-from chatbot.common.config import Config
-from chatbot.memory.base_memory import BaseChatbotMemory
+from common.config import Config
+from memory.base_memory import BaseChatbotMemory
 
 logger = logging.getLogger(__name__)
 

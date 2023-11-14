@@ -2,8 +2,8 @@ import langdetect
 from langchain_experimental.data_anonymizer import PresidioReversibleAnonymizer, PresidioAnonymizer
 from langchain.schema import runnable
 
-from chatbot.common.config import BaseObject, Config
-from chatbot.common.constants import ANONYMIZED_FIELDS, NLP_CONFIG
+from common.config import BaseObject, Config
+from common.constants import ANONYMIZED_FIELDS, NLP_CONFIG
 
 
 class BotAnonymizer(BaseObject):

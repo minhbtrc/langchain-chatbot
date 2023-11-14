@@ -4,12 +4,12 @@ from langchain.prompts import PromptTemplate
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
-from gradio_ui.base_ui import BaseGradioUI
-from chatbot import MemoryTypes
-from chatbot.models import ModelTypes
-from chatbot.common.config import Config
-from chatbot.bot import Bot
-from chatbot.prompt import LLAMA_PROMPT, BOT_PERSONALITY
+from chatbot_backend.gradio_ui import BaseGradioUI
+from chatbot_backend.memory import MemoryTypes
+from chatbot_backend.models import ModelTypes
+from chatbot_backend.common.config import Config
+from chatbot_backend.bot import Bot
+from chatbot_backend.prompt import LLAMA_PROMPT, BOT_PERSONALITY
 
 
 if __name__ == "__main__":

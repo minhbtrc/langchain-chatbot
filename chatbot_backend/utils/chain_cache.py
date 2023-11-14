@@ -8,7 +8,7 @@ import hashlib
 from gptcache import Cache
 from gptcache.adapter.api import init_similar_cache
 
-from chatbot.common.config import BaseObject, Config
+from common.config import BaseObject
 
 CACHE_TYPE = {
     "in_memory": InMemoryCache,

@@ -6,9 +6,9 @@
 # from fastapi.responses import StreamingResponse
 # from langchain.callbacks.tracers.log_stream import RunLogPatch
 
-# from chatbot import Bot
-# from chatbot import MemoryTypes, ModelTypes
-# from chatbot.common.objects import ChatRequest
+# from bot import Bot
+# from  import MemoryTypes, ModelTypes
+# from .common.objects import ChatRequest
 
 # bot = Bot(memory=MemoryTypes.CUSTOM_MEMORY, model=ModelTypes.VERTEX)
 
@@ -57,4 +57,4 @@
 #     uvicorn.run(app, host="0.0.0.0", port=8080)
 
 
-# MOVE to langserver.py
+# MOVE to app.py

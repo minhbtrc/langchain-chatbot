@@ -3,8 +3,10 @@ import random
 
 import gradio as gr
 
-from chatbot.bot import Bot
-from chatbot import MemoryTypes, ModelTypes,CacheTypes
+from bot import Bot
+from memory import MemoryTypes
+from models import ModelTypes
+from utils import CacheTypes
 
 
 class BaseGradioUI:
@@ -69,3 +71,12 @@ class BaseGradioUI:
             btn_refresh.click(clear_user_state, outputs=conversation_id_state)
         demo.queue()
         demo.launch(debug=debug, server_port=port, share=share)
+
+
+if __name__ == "__main__":
+    demo = BaseGradioUI(
+        bot_memory=MemoryTypes.CUSTOM_MEMORY,
+        bot_model=ModelTypes.OPENAI,
+        # bot_cache=CacheTypes.GPTCache
+    )
+    demo.start_demo()

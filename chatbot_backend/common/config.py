@@ -4,8 +4,8 @@ import json
 import vertexai
 import urllib.parse
 
-from chatbot.common.constants import CHAT_MODEL_NAME
-from chatbot.common.common_keys import *
+from .constants import CHAT_MODEL_NAME
+from .common_keys import *
 
 
 class Singleton(type):
@@ -50,7 +50,7 @@ class Config(BaseObject):
     ):
         super().__init__()
         self.credentials = credentials if credentials is not None else os.getenv(CREDENTIALS_FILE,
-                                                                                 "./secure/vertex.json")
+                                                                                 "secure/vertex.json")
         self.init_env()
         self.serp_api_token = serp_api_token if serp_api_token is not None else ""
         self.cache_type = cache_type if cache_type is not None else "in_memory"
@@ -72,7 +72,7 @@ class Config(BaseObject):
         self.memory_connection_string = memory_connection_string if memory_connection_string is not None \
             else os.getenv(MONGO_CONNECTION_STRING,
                            f"mongodb+srv://{self.mongo_username}:{self.mongo_password}@{self.mongo_cluster}.xnkswcg.mongodb.net")
-        self.session_id = session_id if session_id is not None else "chatbot"
+        self.session_id = session_id if session_id is not None else "chatbot_backend"
         self.memory_window_size = memory_window_size if memory_window_size is not None else 5
         self.ai_prefix = os.getenv(AI_PREFIX, "AI")
         self.human_prefix = os.getenv(HUMAN_PREFIX, "Human")

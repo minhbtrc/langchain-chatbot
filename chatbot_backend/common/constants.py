@@ -10,4 +10,4 @@ NLP_CONFIG = {
     ],
 }
 PERSONAL_CHAT_PROMPT_REACT = "minhi/personality-chat-react-prompt"
-PERSONAL_CHAT_PROMPT = "minhi/personality-chatbot-prompt"
+PERSONAL_CHAT_PROMPT = "minhi/personality-chatbot_backend-prompt"
