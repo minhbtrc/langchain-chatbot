@@ -1,10 +1,9 @@
 from typing import Optional
 
-import langchain.schema.messages
 from langchain.memory import ConversationBufferWindowMemory, ChatMessageHistory
 
-from chatbot.common.config import BaseObject, Config
-from chatbot.common.objects import MessageTurn
+from common.config import BaseObject, Config
+from common.objects import MessageTurn
 
 
 class BaseChatbotMemory(BaseObject):
@@ -19,7 +18,7 @@ class BaseChatbotMemory(BaseObject):
             **kwargs
     ):
         """
-        Base chatbot memory
+        Base chatbot_backend memory
         :param config: Config object
         :param chat_history_class: LangChain's chat history class
         :param memory_class: LangChain's memory class

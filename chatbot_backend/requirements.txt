@@ -15,8 +15,11 @@ Faker
 pyvi
 https://gitlab.com/trungtv/vi_spacy/-/raw/master/packages/vi_core_news_lg-3.6.0/dist/vi_core_news_lg-3.6.0.tar.gz
 spacy
-langserve
+langserve==0.0.27
 sse_starlette
 google-search-results
 openai
 gptcache
+pip install chardet
+google-search-results
+gunicorn

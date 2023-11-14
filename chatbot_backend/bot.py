@@ -10,15 +10,15 @@ from langchain.callbacks.tracers.langchain import wait_for_all_tracers
 from langchain.schema.runnable import RunnableLambda, RunnableMap
 from langchain.callbacks.streaming_stdout_final_only import FinalStreamingStdOutCallbackHandler
 
-from chatbot.memory import MemoryTypes, MEM_TO_CLASS
-from chatbot.models import ModelTypes
-from chatbot.common.config import Config, BaseObject
-from chatbot.common.objects import Message, MessageTurn
-from chatbot.common.constants import *
-from chatbot.chain import ChainManager
-from chatbot.prompt import BOT_PERSONALITY
-from chatbot.utils import BotAnonymizer, CacheTypes, ChatbotCache
-from chatbot.tools import CustomSearchTool
+from memory import MemoryTypes, MEM_TO_CLASS
+from models import ModelTypes
+from common.config import Config, BaseObject
+from common.objects import Message, MessageTurn
+from common.constants import *
+from chain import ChainManager
+from prompt import BOT_PERSONALITY
+from utils import BotAnonymizer, CacheTypes, ChatbotCache
+from tools import CustomSearchTool
 
 
 class Bot(BaseObject):

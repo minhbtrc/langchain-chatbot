@@ -1,5 +1,5 @@
-chatbot/.env
-secure/*
+chatbot_backend/.env
+chatbot_backend/secure/*
 .idea/
 __pycache__/
 */__pycache__/

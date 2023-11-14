@@ -22,7 +22,7 @@
 
 - [Data anonymization with Microsoft Presidio](https://python.langchain.com/docs/guides/privacy/presidio_data_anonymization/)
 - To protect personally identifiable information (PII), we add `PresidioAnonymizer` to my bot to replace PIIs before
-  pass to LLM api. View code in [Anonymizer](/chatbot/utils/anonymizer.py)
+  pass to LLM api. View code in [Anonymizer](//utils/anonymizer.py)
 - Steps when using it:
     - User message after anonymize:
 

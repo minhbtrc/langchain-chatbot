@@ -2,8 +2,8 @@ import json
 from typing import List
 from pymongo import MongoClient, errors
 
-from chatbot.common.config import Config, BaseObject
-from chatbot.common.objects import MessageTurn, messages_from_dict
+from common.config import Config, BaseObject
+from common.objects import MessageTurn, messages_from_dict
 
 
 class BaseCustomMongoChatbotMemory(BaseObject):
