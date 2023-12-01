@@ -1,4 +1,4 @@
-# Personality chatbot with Langchain + LangSmith.
+# Chatbot with Langchain, LangSmith.
 
 ## Requirement
 
@@ -7,13 +7,13 @@
 ## Description
 
 - This is a chatbot implementation with Langchain framework.
-    - Base LLM: You can use Vertex AI or OpenAI API
+    - Base LLM: Vertex AI or OpenAI API
     - Memory: MongoDB
     - UI:
         - Gradio
         - Langchain UI: [Chat Langchain](https://github.com/langchain-ai/chat-langchain)
             - Use it to leverages LangChain's streaming support.
-    - Prompt versioning: LangSmith
+    - Prompt versioning and tracing: LangSmith
 - User can custom bot's personality by setting bot information like gender, age, ...
 - Demo UI:
   ![Demo UI](/assets/demo_ui.png)
@@ -39,7 +39,7 @@
 ## How to use
 
 - You need Google Cloud credentials to call Vertex API or OPENAI API KEY to call OpenAI API
-- You need create mongoDB database and collection to use as Langchain memory
+- You need create MongoDB database and collection to use as Langchain memory
 
 ### Setup tracing with Langsmith
 
