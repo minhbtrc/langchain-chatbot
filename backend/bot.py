@@ -3,12 +3,14 @@ from queue import Queue
 from typing import Optional, Dict, Union, List
 from operator import itemgetter
 
-from langchain.agents import AgentExecutor
+from langchain_core.agents import AgentExecutor
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnableLambda, RunnableMap
 from langchain.agents.format_scratchpad import format_log_to_str
 from langchain.agents.output_parsers import ReActSingleInputOutputParser
-from langchain.callbacks.tracers.langchain import wait_for_all_tracers
-from langchain.schema.runnable import RunnableLambda, RunnableMap
-from langchain.callbacks.streaming_stdout_final_only import FinalStreamingStdOutCallbackHandler
+from langchain_community.callbacks.tracers.langchain import wait_for_all_tracers
+from langchain_community.callbacks.streaming_stdout_final_only import FinalStreamingStdOutCallbackHandler
 
 from memory import MemoryTypes, MEM_TO_CLASS
 from models import ModelTypes
@@ -87,8 +89,9 @@ class Bot(BaseObject):
             agent=agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=2,
-            return_intermediate_steps=False
+            max_iterations=3,
+            return_intermediate_steps=False,
+            handle_parsing_errors=True
         )
 
     def get_memory(
@@ -122,7 +125,7 @@ class Bot(BaseObject):
     @property
     def default_model_kwargs(self):
         return {
-            "max_output_tokens": 512,
+            "max_output_tokens": 1024,
             "temperature": 0.2,
             "top_p": 0.8,
             "top_k": 40
@@ -132,7 +135,7 @@ class Bot(BaseObject):
     def openai_model_kwargs(self):
         return {
             "temperature": 0.2,
-            "model_name": "gpt-3.5-turbo"
+            "model_name": "gpt-4-turbo"
         }
 
     @property
@@ -172,9 +175,13 @@ class Bot(BaseObject):
             except ValueError as e:
                 import regex as re
                 response = str(e)
+                # Try to extract the actual response from error messages
                 response = re.findall(r".*?Could not parse LLM output: `(.*)`", response)
                 if not response:
-                    raise e
+                    # Try another common error pattern
+                    response = re.findall(r".*?Error in parsing LLM output: `(.*)`", response)
+                    if not response:
+                        raise e
                 output = response[0]
 
             output = Message(message=output, role=self.config.ai_prefix)

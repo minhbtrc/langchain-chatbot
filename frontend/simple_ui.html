@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangChain Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user {
+            background-color: #e6f7ff;
+            text-align: right;
+        }
+        .assistant {
+            background-color: #f1f1f1;
+        }
+        .input-container {
+            display: flex;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #clear-btn {
+            background-color: #f44336;
+        }
+        #clear-btn:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <h1>LangChain Chatbot</h1>
+    <div class="chat-container" id="chat-container"></div>
+    <div class="input-container">
+        <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
+        <button id="send-btn">Send</button>
+        <button id="clear-btn">Clear</button>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        
+        // Generate a random conversation ID
+        const conversationId = Math.random().toString(36).substring(2, 15);
+        
+        // Add message to the chat
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(sender);
+            messageDiv.textContent = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Send a message to the backend
+        async function sendMessage() {
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+            
+            // Display user message
+            addMessage(userMessage, 'user');
+            userInput.value = '';
+            
+            // Add loading message
+            const loadingDiv = document.createElement('div');
+            loadingDiv.classList.add('message', 'assistant');
+            loadingDiv.textContent = 'Thinking...';
+            chatContainer.appendChild(loadingDiv);
+            
+            try {
+                const response = await fetch('http://localhost:8080/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        input: userMessage,
+                        conversation_id: conversationId
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error communicating with the server');
+                }
+                
+                const data = await response.json();
+                
+                // Remove loading message
+                chatContainer.removeChild(loadingDiv);
+                
+                // Display bot response
+                addMessage(data.output, 'assistant');
+            } catch (error) {
+                // Remove loading message
+                chatContainer.removeChild(loadingDiv);
+                
+                // Display error
+                addMessage('Error: ' + error.message, 'assistant');
+            }
+        }
+        
+        // Clear the conversation
+        async function clearConversation() {
+            try {
+                await fetch(`http://localhost:8080/clear/${conversationId}`, {
+                    method: 'POST'
+                });
+                chatContainer.innerHTML = '';
+                addMessage('Conversation cleared', 'assistant');
+            } catch (error) {
+                addMessage('Error clearing conversation: ' + error.message, 'assistant');
+            }
+        }
+        
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        clearBtn.addEventListener('click', clearConversation);
+        
+        // Initial message
+        addMessage('Hello! How can I help you today?', 'assistant');
+    </script>
+</body>
+</html> 

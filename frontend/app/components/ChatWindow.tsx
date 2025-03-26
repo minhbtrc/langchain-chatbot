@@ -177,7 +177,7 @@ export function ChatWindow(props: {
             🔥 {titleText} 🔥
           </Heading>
           <Heading fontSize="md" fontWeight={"normal"} mb={1} color={"white"}>
-            What's up!
+            What&apos;s up!
           </Heading>
         </Flex>
       )}

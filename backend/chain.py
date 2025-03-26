@@ -1,7 +1,9 @@
 from typing import Optional
-from langchain.prompts import PromptTemplate
-from langchain import hub
-from langchain.callbacks.tracers.langchain import wait_for_all_tracers
+
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnableLambda
+from langchain_hub import pull as hub_pull
+from langchain_community.callbacks.tracers.langchain import wait_for_all_tracers
 
 from common.config import BaseObject, Config
 from common.objects import Message
@@ -29,6 +31,7 @@ class ChainManager(BaseObject):
             model_type: Optional[ModelTypes] = None,
             parameters: Optional[dict] = None
     ):
+        parameters = parameters or {}
         model_name = parameters.pop("model_name", None)
         if model_type is None:
             model_type = ModelTypes.VERTEX
@@ -56,7 +59,14 @@ class ChainManager(BaseObject):
         self.chain = (self._prompt | self._base_model).with_config(run_name="GenerateResponse")
 
     def _init_prompt_template(self, template_path: str = None, partial_variables=None):
-        prompt: PromptTemplate = hub.pull(template_path)
+        partial_variables = partial_variables or {}
+        try:
+            # First try to pull from the hub
+            prompt: PromptTemplate = hub_pull(template_path)
+        except Exception as e:
+            self.logger.warning(f"Failed to pull prompt from hub: {e}")
+            # If it fails, treat it as a local template
+            prompt = PromptTemplate.from_template(template_path)
         self._prompt = prompt.partial(**partial_variables)
 
     async def _predict(self, message: Message, conversation_id: str):
