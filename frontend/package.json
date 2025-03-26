@@ -1,0 +1,47 @@
+{
+  "name": "chatbot-langchain",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "yarn@1.22.19",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@chakra-ui/icons": "^2.1.1",
+    "@chakra-ui/react": "^2.8.2",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "@microsoft/fetch-event-source": "^2.0.1",
+    "@types/marked": "^5.0.2",
+    "@types/node": "20.11.20",
+    "@types/react": "18.2.57",
+    "@types/react-dom": "18.2.19",
+    "autoprefixer": "10.4.17",
+    "emojisplosion": "^2.6.1",
+    "eslint": "8.56.0",
+    "eslint-config-next": "14.1.0",
+    "fast-json-patch": "^3.1.1",
+    "framer-motion": "^10.18.0",
+    "graphql": "^16.8.1",
+    "highlight.js": "^11.9.0",
+    "langchain": "^0.1.10",
+    "langsmith": "^0.1.10",
+    "marked": "^11.2.0",
+    "next": "^14.1.0",
+    "postcss": "8.4.35",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-textarea-autosize": "^8.5.3",
+    "react-toastify": "^10.0.4",
+    "tailwindcss": "3.4.1",
+    "typescript": "5.3.3"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "typescript": "5.3.3"
+  }
+}

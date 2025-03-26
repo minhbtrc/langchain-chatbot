@@ -1,36 +1,72 @@
-version: "3.9"
-
 services:
+  mongodb:
+    image: mongo:latest
+    container_name: chatbot-mongodb
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - chatbot-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   backend:
-    build: ./chatbot_backend
-    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chatbot-backend
+    restart: unless-stopped
+    depends_on:
+      mongodb:
+        condition: service_healthy
     env_file:
-      - ./chatbot_backend/.env
-    # environment:
-    #   - CREDENTIALS_FILE=${CREDENTIALS_FILE}
-    #   - MONGO_CLUSTER=${MONGO_CLUSTER}
-    #   - MONGO_PASSWORD=${MONGO_PASSWORD}
-    #   - MONGO_USERNAME=${MONGO_USERNAME}
-    #   - SERPAPI_API_KEY=${SERPAPI_API_KEY}
-    #   - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2}
-    #   - LANGCHAIN_ENDPOINT=${LANGCHAIN_ENDPOINT}
-    #   - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY}
-    #   - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT}
+      - backend/.env
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/chatbot
     ports:
-      - 8080:8080
+      - "8080:8080"
     networks:
-      - Chatbot
+      - chatbot-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client; conn = http.client.HTTPConnection('localhost:8080'); conn.request('GET', '/health'); response = conn.getresponse(); exit(0 if response.status == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   frontend:
-    build: ./chatbot_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: chatbot-frontend
+    restart: unless-stopped
     depends_on:
-      - backend
-    volumes:
-      - /app/chatbot_frontend/node_modules
+      backend:
+        condition: service_healthy
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8080
+    ports:
+      - "3000:3000"
     networks:
-      - Chatbot
+      - chatbot-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
-  Chatbot:
-    external: true
+  chatbot-network:
+    name: chatbot-network
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    name: chatbot-mongodb-data
